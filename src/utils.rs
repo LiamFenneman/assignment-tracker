@@ -32,6 +32,21 @@ pub struct Class {
 }
 
 impl Class {
+    /// Create a new class.
+    ///
+    /// Code format: 4 capital letters + 3 digits
+    ///
+    /// # Examples
+    /// Valid code format:
+    /// ```
+    /// let class = tracker::Class::new("SOME101");
+    /// assert!(class.is_ok());
+    /// ```
+    /// Invalid code format:
+    /// ```
+    /// let class = tracker::Class::new("some random text");
+    /// assert!(class.is_err());
+    /// ```
     pub fn new(code: &str) -> Result<Self, &'static str> {
         let re = match regex::Regex::new(r"^[A-Z]{4}\d{3}$") {
             Ok(re) => re,
@@ -63,6 +78,7 @@ pub struct Assignment {
 }
 
 impl Assignment {
+    /// Create a new Assignment.
     pub fn new(name: &str, value: f64, class: Class) -> Self {
         Self {
             name: name.to_string(),
@@ -86,20 +102,29 @@ impl Assignment {
     ///
     /// # Conditions
     /// If the mark is not ```None``` then both ```m >= 0.0``` and ```m <= 100.0``` must hold for the mark to be set.
-    pub fn set_mark(&mut self, mark: Option<f64>) -> Result<(), &'static str> {
-        match mark {
-            Some(m) => {
-                if m < 0.0 {
-                    return Err("Mark must be positive");
-                } else if m > 100.0 {
-                    return Err("Mark must be below 100.0");
-                }
-
-                self.mark = mark;
-                Ok(())
-            }
-            None => Ok(()),
+    ///
+    /// # Example
+    /// ```
+    /// let class = tracker::Class::new("SOME101").unwrap();
+    /// let mut assign = tracker::Assignment::new("Test 1", 50.0, class);
+    /// assert!(assign.set_mark(80.0).is_ok());
+    /// assert!(assign.set_mark(-80.0).is_err());
+    /// assert!(assign.set_mark(200.0).is_err());
+    /// ```
+    pub fn set_mark(&mut self, mark: f64) -> Result<(), &'static str> {
+        if mark < 0.0 {
+            return Err("Mark must be positive");
+        } else if mark > 100.0 {
+            return Err("Mark must be below 100.0");
         }
+
+        self.mark = Some(mark);
+        Ok(())
+    }
+
+    /// Remove the mark for this assignment.
+    pub fn remove_mark(&mut self) {
+        self.mark = None;
     }
 
     /// Get the value of the assignment with regards to the final grade.
@@ -141,5 +166,37 @@ impl fmt::Display for Assignment {
 impl PartialOrd for Assignment {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.name.cmp(&other.name))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_class() {
+        let class = Class::new("SOME101");
+        assert!(class.is_ok());
+
+        let class = Class::new("some random text");
+        assert!(class.is_err())
+    }
+
+    #[test]
+    fn set_mark() {
+        let mut assign = Assignment::new("Test 1", 50.0, Class::new("SOME101").unwrap());
+        assert!(assign.set_mark(80.0).is_ok());
+        assert!(assign.set_mark(-80.0).is_err());
+        assert!(assign.set_mark(200.0).is_err());
+    }
+    #[test]
+    fn final_pct() {
+        let mut assign = Assignment::new("Test 1", 50.0, Class::new("SOME101").unwrap());
+        assert!(assign.set_mark(100.0).is_ok());
+        assert!(!assign.final_pct().is_none());
+        assert_eq!(50.0, assign.final_pct().unwrap());
+
+        assign.remove_mark();
+        assert_eq!(None, assign.final_pct());
     }
 }

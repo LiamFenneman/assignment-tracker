@@ -1,5 +1,5 @@
-use assignment_tracker::{run, Args};
 use std::env;
+use tracker::{run, Args};
 
 fn main() {
     let args = Args::new(env::args()).unwrap_or_else(|err| {

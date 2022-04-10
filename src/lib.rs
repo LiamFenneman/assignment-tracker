@@ -29,7 +29,7 @@ pub fn run(args: Args) -> Result<(), Box<dyn Error>> {
     // create an assignment
     let mut a = Assignment::new("Test", 50.0, c);
     println!("New assignment: {}", a);
-    if let Err(e) = a.set_mark(Some(88.0)) {
+    if let Err(e) = a.set_mark(88.0) {
         eprintln!("Assignment error: {}", e);
         process::exit(1);
     }
@@ -45,6 +45,3 @@ fn get_input(msg: &str) -> Result<String, io::Error> {
     io::stdin().read_line(&mut buffer)?;
     Ok(buffer.trim().to_string())
 }
-
-#[cfg(test)]
-mod tests {}

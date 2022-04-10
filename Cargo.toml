@@ -1,5 +1,5 @@
 [package]
-name = "assignment-tracker"
+name = "tracker"
 version = "0.1.0"
 edition = "2021"
 
