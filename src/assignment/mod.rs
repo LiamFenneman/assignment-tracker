@@ -1,3 +1,6 @@
+mod invalid_error;
+pub use invalid_error::InvalidError;
+
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{cmp, fmt, result, str::FromStr};
@@ -12,7 +15,7 @@ pub struct Assignment {
     class_code: String,
 }
 
-pub type Result<T> = result::Result<T, &'static str>;
+pub type Result<T> = result::Result<T, InvalidError>;
 
 // use lazy static to create the regex once
 lazy_static! {
@@ -72,9 +75,9 @@ impl Assignment {
     /// ```
     pub fn set_mark(&mut self, mark: f64) -> Result<()> {
         if mark < 0.0 {
-            return Err("Mark must be positive");
+            return Err(InvalidError::with_msg("Mark must be positive"));
         } else if mark > 100.0 {
-            return Err("Mark must be below 100.0");
+            return Err(InvalidError::with_msg("Mark must be below 100.0"));
         }
 
         self.mark = Some(mark);
@@ -127,26 +130,36 @@ impl Assignment {
     /// - ```percent``` within range ```0..=100``` or ```None```
     pub fn is_valid(&self) -> Result<()> {
         if !(3..=20).contains(&self.name().len()) {
-            return Err("Name must have at least 1 char and at most 20 chars");
+            return Err(InvalidError::with_msg(
+                "Name must have at least 1 char and at most 20 chars",
+            ));
         }
 
         if !RE.is_match(&self.class_code()) {
-            return Err("Class code doesn't follow format: XXXX### (e.g. SOME101)");
+            return Err(InvalidError::with_msg(
+                "Class code doesn't follow format: XXXX### (e.g. SOME101)",
+            ));
         }
 
         if !(0.0..=100.0).contains(&self.value()) {
-            return Err("Value of an assignment should be in range 0..=100");
+            return Err(InvalidError::with_msg(
+                "Value of an assignment should be in range 0..=100",
+            ));
         }
 
         if let Some(m) = &self.mark() {
             if !(0.0..=100.0).contains(m) {
-                return Err("Mark must be within range 0..=100 or None");
+                return Err(InvalidError::with_msg(
+                    "Mark must be within range 0..=100 or None",
+                ));
             }
         }
 
         if let Some(p) = &self.final_pct() {
             if !(0.0..=100.0).contains(p) {
-                return Err("Final percentage must be within range 0..=100 or None");
+                return Err(InvalidError::with_msg(
+                    "Final percentage must be within range 0..=100 or None",
+                ));
             }
         }
 

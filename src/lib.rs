@@ -3,24 +3,15 @@ extern crate lazy_static;
 
 mod assignment;
 mod utils;
-pub use assignment::Assignment;
+pub use assignment::{Assignment, InvalidError};
 pub use utils::Args;
 
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs, io, process};
+use std::{error::Error, fs, io};
 
 /// Entry point to the program
 pub fn run(args: Args) -> Result<(), Box<dyn Error>> {
-    // read the file from the args
-    let contents = fs::read_to_string(args.filename())?;
-
-    let assignments: AssignmentVec =
-        serde_json::from_str(&contents).expect("Problem deserialising the file contents");
-    if let Err(e) = assignments.is_valid() {
-        eprintln!("Invalid assignment: {}", e);
-        process::exit(1);
-    }
-
+    let assignments = get_assignments_from_file(args.filename())?;
     println!("{:#?}", assignments);
 
     Ok(())
@@ -34,11 +25,24 @@ fn _get_input(msg: &str) -> Result<String, io::Error> {
     Ok(buffer.trim().to_string())
 }
 
+fn get_assignments_from_file(filename: &str) -> Result<Vec<Assignment>, Box<dyn Error + 'static>> {
+    let contents = fs::read_to_string(filename)?;
+
+    let assignments: AssignmentVec =
+        serde_json::from_str(&contents).expect("Problem deserialising the file contents");
+
+    if let Err(e) = assignments.is_valid() {
+        return Err(Box::new(e));
+    }
+
+    Ok(assignments.0) // unwrap from AssignmentVec to Vec<Assignment>
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct AssignmentVec(Vec<Assignment>);
 
 impl AssignmentVec {
-    fn is_valid(&self) -> Result<(), &'static str> {
+    fn is_valid(&self) -> Result<(), InvalidError> {
         for a in &self.0 {
             if let Err(e) = a.is_valid() {
                 return Err(e);
