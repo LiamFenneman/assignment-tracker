@@ -1,11 +1,9 @@
 use regex::Regex;
-use std::{cmp, fmt, str::FromStr};
-
-mod parse_error;
-use parse_error::AssignmentParseError;
+use serde::{Deserialize, Serialize};
+use std::{cmp, fmt, result, str::FromStr};
 
 /// Representation of a single assignment.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub struct Assignment {
     name: String,
     mark: Option<f64>,
@@ -14,7 +12,7 @@ pub struct Assignment {
     class_code: String,
 }
 
-pub type Result<T> = std::result::Result<T, &'static str>;
+pub type Result<T> = result::Result<T, &'static str>;
 
 // use lazy static to create the regex once
 lazy_static! {
@@ -27,7 +25,7 @@ impl Assignment {
     /// # Conditions
     /// - ```name``` length within range ```3..=20```
     /// - ```value``` within range ```0..=100```
-    /// - ```class``` format: ```XXXX###``` (e.g. SOME101)
+    /// - ```class_code``` format: ```XXXX###``` (e.g. SOME101)
     ///
     /// # Examples
     /// ```
@@ -35,25 +33,19 @@ impl Assignment {
     /// assert!(valid.is_ok());
     /// ```
     pub fn new(name: &str, value: f64, class_code: &str) -> Result<Self> {
-        if !(3..=20).contains(&name.len()) {
-            return Err("Name must have at least 1 char and at most 20 chars");
-        }
-
-        if !RE.is_match(&class_code) {
-            return Err("Class code doesn't follow format: XXXX### (e.g. SOME101)");
-        }
-
-        if !(0.0..=100.0).contains(&value) {
-            return Err("Value of an assignment should be in range 0..=100");
-        }
-
-        Ok(Self {
+        let ass = Self {
             name: name.to_string(),
             mark: None,
             value,
             percent: None,
             class_code: class_code.to_string(),
-        })
+        };
+
+        if let Err(e) = ass.is_valid() {
+            return Err(e);
+        }
+
+        Ok(ass)
     }
 
     /// Get the name of the assignment.
@@ -120,31 +112,45 @@ impl Assignment {
         &self.class_code
     }
 
-    /// Get the Assignment in CSV format.
+    /// Serialize the Assignment into JSON format.
+    pub fn serialize(&self) -> String {
+        serde_json::to_string(&self).expect("Problem with serialization")
+    }
+
+    /// Check if the assignment is valid.
     ///
-    /// # Examples
-    /// ```
-    /// let mut a = tracker::Assignment::new("Test 1", 25.0, "TEST123").unwrap();
-    /// assert_eq!("TEST123,Test 1,None,25.0", a.as_csv());
-    /// a.set_mark(99.9);
-    /// assert_eq!("TEST123,Test 1,99.9,25.0", a.as_csv());
-    /// ```
-    pub fn as_csv(&self) -> String {
-        match self.mark() {
-            Some(mark) => format!(
-                "{},{},{:.1},{:.1}",
-                self.class_code(),
-                self.name(),
-                mark,
-                self.value()
-            ),
-            None => format!(
-                "{},{},None,{:.1}",
-                self.class_code(),
-                self.name(),
-                self.value()
-            ),
+    /// # Conditions
+    /// - ```name``` length within range ```3..=20```
+    /// - ```class_code``` format: ```XXXX###``` (e.g. SOME101)
+    /// - ```mark``` within range ```0..=100``` or ```None```
+    /// - ```value``` within range ```0..=100```
+    /// - ```percent``` within range ```0..=100``` or ```None```
+    pub fn is_valid(&self) -> Result<()> {
+        if !(3..=20).contains(&self.name().len()) {
+            return Err("Name must have at least 1 char and at most 20 chars");
         }
+
+        if !RE.is_match(&self.class_code()) {
+            return Err("Class code doesn't follow format: XXXX### (e.g. SOME101)");
+        }
+
+        if !(0.0..=100.0).contains(&self.value()) {
+            return Err("Value of an assignment should be in range 0..=100");
+        }
+
+        if let Some(m) = &self.mark() {
+            if !(0.0..=100.0).contains(m) {
+                return Err("Mark must be within range 0..=100 or None");
+            }
+        }
+
+        if let Some(p) = &self.final_pct() {
+            if !(0.0..=100.0).contains(p) {
+                return Err("Final percentage must be within range 0..=100 or None");
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -175,35 +181,12 @@ impl PartialOrd for Assignment {
     }
 }
 
-// Allow for parsing to Assignment from CSV
+// Parse using the Serde Deserialization.
 impl FromStr for Assignment {
-    type Err = AssignmentParseError;
+    type Err = serde_json::Error;
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let split: Vec<&str> = s.trim().split(',').collect();
-
-        // parse the value into f64
-        let value: f64 = split[3].parse().unwrap();
-
-        // create an assignment, if err then return a parse error
-        let mut assignment = match Assignment::new(split[1], value, split[0]) {
-            Ok(m) => m,
-            Err(e) => return Err(AssignmentParseError::new(&format! {"{:?}", e})),
-        };
-
-        // if the split for mark is not "None" then try parse f64
-        if split[2] != "None" {
-            let mark: f64 = match split[2].parse() {
-                Ok(m) => m,
-                Err(e) => return Err(AssignmentParseError::new(&format!("{:?}", e))),
-            };
-            // try set the mark
-            if let Err(e) = assignment.set_mark(mark) {
-                return Err(AssignmentParseError::new(&format!("{:?}", e)));
-            }
-        }
-
-        Ok(assignment)
+    fn from_str(s: &str) -> result::Result<Self, Self::Err> {
+        serde_json::from_str(s)
     }
 }
 
@@ -256,86 +239,15 @@ mod tests {
     }
 
     #[test]
-    fn parse_valid_1() {
-        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,75.0,20.0".parse();
-        assert!(a.is_ok());
-        let a = a.unwrap();
-        assert_eq!(
-            Assignment {
-                name: String::from("Test 1"),
-                mark: Some(75.0),
-                value: 20.0,
-                percent: Some(15.0),
-                class_code: String::from("TEST101")
-            },
-            a
-        );
+    fn is_valid_1() {
+        let assign = Assignment::new("Test 1", 50.0, "SOME101").unwrap();
+        assert!(assign.is_valid().is_ok());
     }
+
     #[test]
-    fn parse_valid_2() {
-        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,None,20.0".parse();
-        assert!(a.is_ok());
-        let a = a.unwrap();
-        assert_eq!(
-            Assignment {
-                name: String::from("Test 1"),
-                mark: None,
-                value: 20.0,
-                percent: None,
-                class_code: String::from("TEST101")
-            },
-            a
-        );
-    }
-    #[test]
-    fn parse_invalid_1() {
-        let a: std::result::Result<Assignment, _> = ",Test 1,None,20.0".parse();
-        assert!(a.is_err());
-    }
-    #[test]
-    fn parse_invalid_2() {
-        let a: std::result::Result<Assignment, _> = "NOT 101,Test 1,None,20.0".parse();
-        assert!(a.is_err());
-    }
-    #[test]
-    fn parse_invalid_3() {
-        let a: std::result::Result<Assignment, _> = "TEST___,Test 1,None,20.0".parse();
-        assert!(a.is_err());
-    }
-    #[test]
-    fn parse_invalid_4() {
-        let a: std::result::Result<Assignment, _> = "TEST101,,None,20.0".parse();
-        assert!(a.is_err());
-    }
-    #[test]
-    fn parse_invalid_5() {
-        let a: std::result::Result<Assignment, _> =
-            "TEST101,really long assignment name which is invalid,None,20.0".parse();
-        assert!(a.is_err());
-    }
-    #[test]
-    fn parse_invalid_6() {
-        let a: std::result::Result<Assignment, _> = "TEST101,Aa,None,20.0".parse();
-        assert!(a.is_err());
-    }
-    #[test]
-    fn parse_invalid_7() {
-        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,-10.0,20.0".parse();
-        assert!(a.is_err());
-    }
-    #[test]
-    fn parse_invalid_8() {
-        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,110.0,20.0".parse();
-        assert!(a.is_err());
-    }
-    #[test]
-    fn parse_invalid_9() {
-        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,80.0,-20.0".parse();
-        assert!(a.is_err());
-    }
-    #[test]
-    fn parse_invalid_10() {
-        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,80.0,120.0".parse();
-        assert!(a.is_err());
+    fn is_valid_2() {
+        let mut assign = Assignment::new("Test 1", 50.0, "SOME101").unwrap();
+        assign.set_mark(55.5).unwrap();
+        assert!(assign.is_valid().is_ok());
     }
 }

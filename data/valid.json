@@ -1,0 +1,30 @@
+[
+    {
+        "name": "Test 1",
+        "mark": 90.0,
+        "value": 25.0,
+        "percent": 22.5,
+        "class_code": "TEST101"
+    },
+    {
+        "name": "Test 2",
+        "mark": 75.0,
+        "value": 25.0,
+        "percent": 18.75,
+        "class_code": "TEST101"
+    },
+    {
+        "name": "Test 3",
+        "mark": null,
+        "value": 25.0,
+        "percent": null,
+        "class_code": "TEST101"
+    },
+    {
+        "name": "Test 4",
+        "mark": null,
+        "value": 25.0,
+        "percent": null,
+        "class_code": "TEST101"
+    }
+]
