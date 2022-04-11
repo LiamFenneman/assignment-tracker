@@ -19,7 +19,7 @@ pub type Result<T> = result::Result<T, InvalidError>;
 
 // use lazy static to create the regex once
 lazy_static! {
-    static ref RE: Regex = Regex::new(r"^[A-Z]{4}\d{3}$").expect("Invalid regex.");
+    static ref RE: Regex = Regex::new(r"^[A-Z]{4}\d{3}$").unwrap();
 }
 
 impl Assignment {
