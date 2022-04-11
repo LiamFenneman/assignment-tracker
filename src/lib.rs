@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 mod assignment;
 mod utils;
 
@@ -21,13 +24,13 @@ pub fn run(args: Args) -> Result<(), Box<dyn Error>> {
         assignments.push(assign);
     }
 
-    println!("{:?}", assignments);
+    println!("{:#?}", assignments);
 
     Ok(())
 }
 
 /// Ask the user for input.
-fn get_input(msg: &str) -> Result<String, io::Error> {
+fn _get_input(msg: &str) -> Result<String, io::Error> {
     println!("{}:", msg);
     let mut buffer = String::new();
     io::stdin().read_line(&mut buffer)?;

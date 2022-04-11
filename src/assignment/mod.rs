@@ -1,4 +1,8 @@
-use std::{cmp, error::Error, fmt, str::FromStr};
+use regex::Regex;
+use std::{cmp, fmt, str::FromStr};
+
+mod parse_error;
+use parse_error::AssignmentParseError;
 
 /// Representation of a single assignment.
 #[derive(PartialEq, Debug)]
@@ -6,7 +10,15 @@ pub struct Assignment {
     name: String,
     mark: Option<f64>,
     value: f64,
+    percent: Option<f64>,
     class_code: String,
+}
+
+pub type Result<T> = std::result::Result<T, &'static str>;
+
+// use lazy static to create the regex once
+lazy_static! {
+    static ref RE: Regex = Regex::new(r"^[A-Z]{4}\d{3}$").expect("Invalid regex.");
 }
 
 impl Assignment {
@@ -22,16 +34,12 @@ impl Assignment {
     /// let valid = tracker::Assignment::new("Test", 10.0, "SOME101");
     /// assert!(valid.is_ok());
     /// ```
-    pub fn new(name: &str, value: f64, class_code: &str) -> Result<Self, &'static str> {
+    pub fn new(name: &str, value: f64, class_code: &str) -> Result<Self> {
         if !(3..=20).contains(&name.len()) {
             return Err("Name must have at least 1 char and at most 20 chars");
         }
 
-        let re = regex::Regex::new(r"^[A-Z]{4}\d{3}$").unwrap_or_else(|err| {
-            panic!("Regex error: {}", err);
-        });
-
-        if !re.is_match(&class_code) {
+        if !RE.is_match(&class_code) {
             return Err("Class code doesn't follow format: XXXX### (e.g. SOME101)");
         }
 
@@ -43,6 +51,7 @@ impl Assignment {
             name: name.to_string(),
             mark: None,
             value,
+            percent: None,
             class_code: class_code.to_string(),
         })
     }
@@ -69,7 +78,7 @@ impl Assignment {
     /// assert!(assign.set_mark(-80.0).is_err());
     /// assert!(assign.set_mark(200.0).is_err());
     /// ```
-    pub fn set_mark(&mut self, mark: f64) -> Result<(), &'static str> {
+    pub fn set_mark(&mut self, mark: f64) -> Result<()> {
         if mark < 0.0 {
             return Err("Mark must be positive");
         } else if mark > 100.0 {
@@ -77,12 +86,14 @@ impl Assignment {
         }
 
         self.mark = Some(mark);
+        self.update_final_pct();
         Ok(())
     }
 
     /// Remove the mark for this assignment.
     pub fn remove_mark(&mut self) {
         self.mark = None;
+        self.update_final_pct();
     }
 
     /// Get the value of the assignment with regards to the final grade.
@@ -91,12 +102,17 @@ impl Assignment {
         self.value
     }
 
-    /// Get the final grade contribution for this assignment.
-    pub fn final_pct(&self) -> Option<f64> {
-        match self.mark() {
+    /// Update the final percentage.
+    fn update_final_pct(&mut self) {
+        self.percent = match self.mark() {
             Some(m) => Some((m / 100.0) * self.value()),
             None => None,
         }
+    }
+
+    /// Get the final grade contribution for this assignment.
+    pub fn final_pct(&self) -> Option<f64> {
+        self.percent
     }
 
     /// Get the class code for this assignment.
@@ -163,7 +179,7 @@ impl PartialOrd for Assignment {
 impl FromStr for Assignment {
     type Err = AssignmentParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let split: Vec<&str> = s.trim().split(',').collect();
 
         // parse the value into f64
@@ -188,32 +204,6 @@ impl FromStr for Assignment {
         }
 
         Ok(assignment)
-    }
-}
-
-/// Error occurs when parsing a string into Assignment.
-#[derive(Debug)]
-pub struct AssignmentParseError {
-    msg: String,
-}
-
-impl AssignmentParseError {
-    pub fn new(msg: &str) -> Self {
-        Self {
-            msg: msg.to_string(),
-        }
-    }
-}
-
-impl Error for AssignmentParseError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        None
-    }
-}
-
-impl fmt::Display for AssignmentParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Error parsing assignment: {}", self.msg)
     }
 }
 
@@ -267,7 +257,7 @@ mod tests {
 
     #[test]
     fn parse_valid_1() {
-        let a: Result<Assignment, _> = "TEST101,Test 1,75.0,20.0".parse();
+        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,75.0,20.0".parse();
         assert!(a.is_ok());
         let a = a.unwrap();
         assert_eq!(
@@ -275,6 +265,7 @@ mod tests {
                 name: String::from("Test 1"),
                 mark: Some(75.0),
                 value: 20.0,
+                percent: Some(15.0),
                 class_code: String::from("TEST101")
             },
             a
@@ -282,7 +273,7 @@ mod tests {
     }
     #[test]
     fn parse_valid_2() {
-        let a: Result<Assignment, _> = "TEST101,Test 1,None,20.0".parse();
+        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,None,20.0".parse();
         assert!(a.is_ok());
         let a = a.unwrap();
         assert_eq!(
@@ -290,6 +281,7 @@ mod tests {
                 name: String::from("Test 1"),
                 mark: None,
                 value: 20.0,
+                percent: None,
                 class_code: String::from("TEST101")
             },
             a
@@ -297,53 +289,53 @@ mod tests {
     }
     #[test]
     fn parse_invalid_1() {
-        let a: Result<Assignment, _> = ",Test 1,None,20.0".parse();
+        let a: std::result::Result<Assignment, _> = ",Test 1,None,20.0".parse();
         assert!(a.is_err());
     }
     #[test]
     fn parse_invalid_2() {
-        let a: Result<Assignment, _> = "NOT 101,Test 1,None,20.0".parse();
+        let a: std::result::Result<Assignment, _> = "NOT 101,Test 1,None,20.0".parse();
         assert!(a.is_err());
     }
     #[test]
     fn parse_invalid_3() {
-        let a: Result<Assignment, _> = "TEST___,Test 1,None,20.0".parse();
+        let a: std::result::Result<Assignment, _> = "TEST___,Test 1,None,20.0".parse();
         assert!(a.is_err());
     }
     #[test]
     fn parse_invalid_4() {
-        let a: Result<Assignment, _> = "TEST101,,None,20.0".parse();
+        let a: std::result::Result<Assignment, _> = "TEST101,,None,20.0".parse();
         assert!(a.is_err());
     }
     #[test]
     fn parse_invalid_5() {
-        let a: Result<Assignment, _> =
+        let a: std::result::Result<Assignment, _> =
             "TEST101,really long assignment name which is invalid,None,20.0".parse();
         assert!(a.is_err());
     }
     #[test]
     fn parse_invalid_6() {
-        let a: Result<Assignment, _> = "TEST101,Aa,None,20.0".parse();
+        let a: std::result::Result<Assignment, _> = "TEST101,Aa,None,20.0".parse();
         assert!(a.is_err());
     }
     #[test]
     fn parse_invalid_7() {
-        let a: Result<Assignment, _> = "TEST101,Test 1,-10.0,20.0".parse();
+        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,-10.0,20.0".parse();
         assert!(a.is_err());
     }
     #[test]
     fn parse_invalid_8() {
-        let a: Result<Assignment, _> = "TEST101,Test 1,110.0,20.0".parse();
+        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,110.0,20.0".parse();
         assert!(a.is_err());
     }
     #[test]
     fn parse_invalid_9() {
-        let a: Result<Assignment, _> = "TEST101,Test 1,80.0,-20.0".parse();
+        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,80.0,-20.0".parse();
         assert!(a.is_err());
     }
     #[test]
     fn parse_invalid_10() {
-        let a: Result<Assignment, _> = "TEST101,Test 1,80.0,120.0".parse();
+        let a: std::result::Result<Assignment, _> = "TEST101,Test 1,80.0,120.0".parse();
         assert!(a.is_err());
     }
 }
