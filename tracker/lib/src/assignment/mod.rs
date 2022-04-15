@@ -5,6 +5,8 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{cmp, fmt, result};
 
+use crate::ClassCode;
+
 /// Representation of a single assignment.
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub struct Assignment {
@@ -12,7 +14,7 @@ pub struct Assignment {
     mark: Option<f64>,
     value: f64,
     percent: Option<f64>,
-    class_code: String,
+    class_code: ClassCode,
 }
 
 pub type Result<T> = result::Result<T, InvalidError>;
@@ -28,20 +30,20 @@ impl Assignment {
     /// # Conditions
     /// - ```name``` length within range ```3..=20```
     /// - ```value``` within range ```0..=100```
-    /// - ```class_code``` format: ```XXXX###``` (e.g. SOME101)
     ///
     /// # Examples
     /// ```
-    /// let valid = tracker::Assignment::new("Test", 10.0, "SOME101");
+    /// use tracker_lib::{Assignment, ClassCode};
+    /// let valid = Assignment::new("Test", 10.0, ClassCode::new("SOME101").unwrap());
     /// assert!(valid.is_ok());
     /// ```
-    pub fn new(name: &str, value: f64, class_code: &str) -> Result<Self> {
+    pub fn new(name: &str, value: f64, class_code: ClassCode) -> Result<Self> {
         let ass = Self {
             name: name.to_string(),
             mark: None,
             value,
             percent: None,
-            class_code: class_code.to_string(),
+            class_code,
         };
 
         if let Err(e) = ass.is_valid() {
@@ -66,9 +68,10 @@ impl Assignment {
     /// # Conditions
     /// If the mark is not ```None``` then both ```m >= 0.0``` and ```m <= 100.0``` must hold for the mark to be set.
     ///
-    /// # Example
+    /// # Examples
     /// ```
-    /// let mut assign = tracker::Assignment::new("Test 1", 50.0, "SOME101").unwrap();
+    /// use tracker_lib::{Assignment, ClassCode};
+    /// let mut assign = Assignment::new("Test", 10.0, ClassCode::new("SOME101").unwrap()).unwrap();
     /// assert!(assign.set_mark(80.0).is_ok());
     /// assert!(assign.set_mark(-80.0).is_err());
     /// assert!(assign.set_mark(200.0).is_err());
@@ -93,7 +96,6 @@ impl Assignment {
 
     /// Get the value of the assignment with regards to the final grade.
     pub fn value(&self) -> f64 {
-        assert!(self.value >= 0.0 && self.value <= 100.0);
         self.value
     }
 
@@ -111,7 +113,7 @@ impl Assignment {
     }
 
     /// Get the class code for this assignment.
-    pub fn class_code(&self) -> &str {
+    pub fn class_code(&self) -> &ClassCode {
         &self.class_code
     }
 
@@ -124,7 +126,6 @@ impl Assignment {
     ///
     /// # Conditions
     /// - ```name``` length within range ```3..=20```
-    /// - ```class_code``` format: ```XXXX###``` (e.g. SOME101)
     /// - ```mark``` within range ```0..=100``` or ```None```
     /// - ```value``` within range ```0..=100```
     /// - ```percent``` within range ```0..=100``` or ```None```
@@ -132,12 +133,6 @@ impl Assignment {
         if !(3..=20).contains(&self.name().len()) {
             return Err(InvalidError::with_msg(
                 "Name must have at least 1 char and at most 20 chars",
-            ));
-        }
-
-        if !RE.is_match(&self.class_code()) {
-            return Err(InvalidError::with_msg(
-                "Class code doesn't follow format: XXXX### (e.g. SOME101)",
             ));
         }
 
@@ -200,40 +195,41 @@ mod tests {
 
     #[test]
     fn new_assignment_1() {
-        let assign = Assignment::new("Test 1", 50.0, "SOME101");
+        let assign = Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap());
         assert!(assign.is_ok());
     }
     #[test]
     fn new_assignment_2() {
-        let assign = Assignment::new("text is way longer than 20 chars", 101.0, "some text");
+        let assign = Assignment::new(
+            "text is way longer than 20 chars",
+            101.0,
+            ClassCode::new("SOME101").unwrap(),
+        );
         assert!(assign.is_err());
     }
     #[test]
     fn new_assignment_3() {
-        let assign = Assignment::new("Test 1", 101.0, "some text");
+        let assign = Assignment::new("Test 1", 101.0, ClassCode::new("SOME101").unwrap());
         assert!(assign.is_err());
     }
     #[test]
     fn new_assignment_4() {
-        let assign = Assignment::new("Test 1", -50.0, "some text");
-        assert!(assign.is_err());
-    }
-    #[test]
-    fn new_assignment_5() {
-        let assign = Assignment::new("Test 1", 50.0, "some text");
+        let assign = Assignment::new("Test 1", -50.0, ClassCode::new("SOME101").unwrap());
         assert!(assign.is_err());
     }
 
     #[test]
     fn set_mark() {
-        let mut assign = Assignment::new("Test 1", 50.0, "SOME101").unwrap();
+        let mut assign =
+            Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
         assert!(assign.set_mark(80.0).is_ok());
         assert!(assign.set_mark(-80.0).is_err());
         assert!(assign.set_mark(200.0).is_err());
     }
     #[test]
     fn final_pct() {
-        let mut assign = Assignment::new("Test 1", 50.0, "SOME101").unwrap();
+        let mut assign =
+            Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
         assert!(assign.set_mark(100.0).is_ok());
         assert!(!assign.final_pct().is_none());
         assert_eq!(50.0, assign.final_pct().unwrap());
@@ -244,13 +240,14 @@ mod tests {
 
     #[test]
     fn is_valid_1() {
-        let assign = Assignment::new("Test 1", 50.0, "SOME101").unwrap();
+        let assign = Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
         assert!(assign.is_valid().is_ok());
     }
 
     #[test]
     fn is_valid_2() {
-        let mut assign = Assignment::new("Test 1", 50.0, "SOME101").unwrap();
+        let mut assign =
+            Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
         assign.set_mark(55.5).unwrap();
         assert!(assign.is_valid().is_ok());
     }

@@ -4,6 +4,7 @@ pub use tracker_lib::Assignment;
 
 use serde::{Deserialize, Serialize};
 use std::{env, error::Error, fs, io, path::Path, process, result};
+use tracker_lib::ClassCode;
 
 type Result<T> = result::Result<T, Box<dyn Error + 'static>>;
 
@@ -24,7 +25,7 @@ fn main() -> Result<()> {
     let name = get_input("Name")?;
     let code = get_input("Class code (format: XXXX####)")?;
     let value: f64 = get_input("Value (0.0 to 100.0)")?.parse()?;
-    let mut assign = Assignment::new(&name, value, &code)?;
+    let mut assign = Assignment::new(&name, value, ClassCode::new(&code)?)?;
     if let Ok(m) = get_input("Mark (0.0 to 100 OR None)")?.parse() {
         assign.set_mark(m)?;
     };
@@ -104,40 +105,20 @@ mod tests {
 
     #[test]
     fn serialize() {
-        let mut a1 = Assignment::new("Test 1", 25.0, "TEST101").unwrap();
+        let mut a1 = Assignment::new("Test 1", 25.0, ClassCode::new("TEST101").unwrap()).unwrap();
         a1.set_mark(90.0).unwrap();
-        let mut a2 = Assignment::new("Test 2", 25.0, "TEST101").unwrap();
+        let mut a2 = Assignment::new("Test 2", 25.0, ClassCode::new("TEST101").unwrap()).unwrap();
         a2.set_mark(75.0).unwrap();
 
         let assignments = AssignmentVec(vec![
             a1,
             a2,
-            Assignment::new("Test 3", 25.0, "TEST101").unwrap(),
-            Assignment::new("Test 4", 25.0, "TEST101").unwrap(),
+            Assignment::new("Test 3", 25.0, ClassCode::new("TEST101").unwrap()).unwrap(),
+            Assignment::new("Test 4", 25.0, ClassCode::new("TEST101").unwrap()).unwrap(),
         ]);
 
         let serialized = serde_json::to_string(&assignments).unwrap();
         let deserialized: AssignmentVec = serde_json::from_str(&serialized).unwrap();
         assert_eq!(assignments, deserialized)
-    }
-
-    #[test]
-    fn serialize_valid() {
-        test_serialize("data/valid.json", true);
-    }
-
-    #[test]
-    fn serialize_invalid() {
-        test_serialize("data/invalid.json", false);
-    }
-
-    fn test_serialize(filename: &str, is_ok: bool) {
-        let contents = fs::read_to_string(filename).unwrap();
-        let assignments: AssignmentVec = serde_json::from_str(&contents).unwrap();
-        if is_ok {
-            assert!(assignments.is_valid().is_ok());
-        } else {
-            assert!(assignments.is_valid().is_err());
-        }
     }
 }
