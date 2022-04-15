@@ -1,19 +1,22 @@
-#[macro_use]
-extern crate lazy_static;
-
-mod assignment;
-mod utils;
-pub use assignment::Assignment;
-pub use utils::Args;
+mod args;
+pub use args::Args;
+pub use tracker_lib::Assignment;
 
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs, io, path::Path, result};
+use std::{env, error::Error, fs, io, path::Path, process, result};
 
 type Result<T> = result::Result<T, Box<dyn Error + 'static>>;
 
 /// Entry point to the program
-pub fn run(args: Args) -> Result<()> {
+fn main() -> Result<()> {
+    let args = Args::new(env::args()).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
+
     let mut ass = get_from_file(args.filename())?;
+
+    println!("{:#?}", ass);
 
     println!("Lets create a new Assignment!");
 

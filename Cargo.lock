@@ -113,14 +113,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "tracker"
-version = "0.2.0"
+name = "tracker-cli"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tracker-lib",
+]
+
+[[package]]
+name = "tracker-lib"
+version = "0.3.0"
 dependencies = [
  "lazy_static",
  "regex",
  "serde",
  "serde_json",
 ]
+
+[[package]]
+name = "tracker-web-backend"
+version = "0.1.0"
+
+[[package]]
+name = "tracker-web-frontend"
+version = "0.1.0"
 
 [[package]]
 name = "unicode-xid"
