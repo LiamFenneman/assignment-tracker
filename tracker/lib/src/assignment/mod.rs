@@ -3,7 +3,7 @@ pub use invalid_error::InvalidError;
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::{cmp, fmt, result, str::FromStr};
+use std::{cmp, fmt, result};
 
 /// Representation of a single assignment.
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
@@ -116,7 +116,7 @@ impl Assignment {
     }
 
     /// Serialize the Assignment into JSON format.
-    pub fn serialize(&self) -> String {
+    pub fn to_json(&self) -> String {
         serde_json::to_string(&self).expect("Problem with serialization")
     }
 
@@ -191,15 +191,6 @@ impl fmt::Display for Assignment {
 impl PartialOrd for Assignment {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.name.cmp(&other.name))
-    }
-}
-
-// Parse using the Serde Deserialization.
-impl FromStr for Assignment {
-    type Err = serde_json::Error;
-
-    fn from_str(s: &str) -> result::Result<Self, Self::Err> {
-        serde_json::from_str(s)
     }
 }
 
