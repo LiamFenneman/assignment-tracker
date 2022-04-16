@@ -1,4 +1,3 @@
 /target
-/data
-!/data/valid.json
-!/data/invalid.json
+/data/*
+!/data/test.csv

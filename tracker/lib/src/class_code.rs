@@ -1,5 +1,5 @@
 use regex::Regex;
-use std::{fmt, rc::Rc};
+use std::{fmt, rc::Rc, str::FromStr};
 
 lazy_static! {
     static ref RE: Regex = Regex::new(r"^[A-Z]{4}\d{3}$").unwrap();
@@ -26,6 +26,14 @@ impl ClassCode {
 impl fmt::Display for ClassCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl FromStr for ClassCode {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        ClassCode::new(s)
     }
 }
 

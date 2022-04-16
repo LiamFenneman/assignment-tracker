@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 
-mod assignment;
+pub mod assignment;
 pub use assignment::Assignment;
 
 mod class_code;
