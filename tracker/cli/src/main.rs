@@ -1,5 +1,6 @@
 use std::{env, error::Error, fs, path::Path, rc::Rc};
 
+use prettytable::{Cell, Row, Table};
 use rand::prelude::*;
 use tracker_lib::{assignment::InvalidError, Assignment, ClassCode, Tracker};
 
@@ -26,8 +27,45 @@ fn main() {
                 println!("{:#?}", tracker);
             }
         }
+        _ if cmd == "print" => {
+            if let Some(filename) = args.get(1) {
+                let tracker = read_file(filename.trim()).unwrap();
+                print_table(&tracker);
+            }
+        }
         _ => panic!("CLI was passed an unknown argument"),
     }
+}
+
+fn print_table(tracker: &Tracker) {
+    let mut table = Table::new();
+    table.add_row(Row::new(vec![
+        Cell::new("CLASS CODE"),
+        Cell::new("NAME"),
+        Cell::new("MARK"),
+        Cell::new("VALUE"),
+        Cell::new("FINAL PCT"),
+    ]));
+
+    for ass in tracker.get_all() {
+        let mark_str = match ass.mark() {
+            Some(m) => format!("{:.1}", m),
+            None => "No mark".to_owned(),
+        };
+        let pct_str = match ass.final_pct() {
+            Some(m) => format!("{:.1}", m),
+            None => String::new(),
+        };
+        table.add_row(Row::new(vec![
+            Cell::new(&format!("{}", ass.class_code())),
+            Cell::new(ass.name()),
+            Cell::new(&mark_str),
+            Cell::new(&format!("{:.1}", ass.value())),
+            Cell::new(&pct_str),
+        ]));
+    }
+
+    table.printstd();
 }
 
 fn write_file(tracker: &Tracker, filename: &str) -> Result<()> {

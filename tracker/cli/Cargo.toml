@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 tracker-lib = { path = "../lib" }
 rand = "0.8.5"
+prettytable-rs = "0.8.0"
