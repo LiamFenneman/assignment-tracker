@@ -1,39 +1,70 @@
-use std::{env, error::Error, fs, path::Path, rc::Rc};
-
 use prettytable::{Cell, Row, Table};
 use rand::prelude::*;
+use std::{
+    env,
+    error::Error,
+    fs,
+    io::{self, Write},
+    path::Path,
+    process,
+    rc::Rc,
+};
 use tracker_lib::{assignment::InvalidError, Assignment, ClassCode, Tracker};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + 'static>>;
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
+    let filename = args.get(0).expect("A filename (or path) must be provided");
+    let mut tracker = read_file(&filename).expect("Problem finding the given filename");
 
-    let cmd = args
-        .get(0)
-        .expect("CLI requires at least 1 argument to be passed");
+    loop {
+        let input: Vec<String> = get_input()
+            .unwrap_or_else(|e| {
+                eprintln!("Problem getting input: {}", e);
+                process::exit(1);
+            })
+            .split(" ")
+            .map(|e| e.to_owned())
+            .collect();
 
+        let cmd = input.get(0);
+        let args: Vec<String> = input.iter().skip(1).map(|e| e.to_owned()).collect();
+        match cmd {
+            None => break,
+            Some(c) => {
+                if let Err(e) = do_command(c, &args, &mut tracker) {
+                    eprintln!("{}", e);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+fn do_command(cmd: &str, args: &Vec<String>, tracker: &mut Tracker) -> Result<()> {
     match cmd {
         _ if cmd == "write" => {
             if let Some(filename) = args.get(1) {
-                let tracker = gen_rand_tracker();
-                write_file(&tracker, filename.trim()).unwrap();
-            }
-        }
-        _ if cmd == "read" => {
-            if let Some(filename) = args.get(1) {
-                let tracker = read_file(filename.trim()).unwrap();
-                println!("{:#?}", tracker);
+                println!("Writing to {}...", filename);
+                write_file(&tracker, filename).unwrap();
             }
         }
         _ if cmd == "print" => {
-            if let Some(filename) = args.get(1) {
-                let tracker = read_file(filename.trim()).unwrap();
-                print_table(&tracker);
-            }
+            print_table(&tracker);
         }
         _ => panic!("CLI was passed an unknown argument"),
     }
+
+    Ok(())
+}
+
+fn get_input() -> Result<String> {
+    print!("> ");
+    io::stdout().flush()?;
+    let mut buffer = String::new();
+    io::stdin().read_line(&mut buffer)?;
+    Ok(buffer.trim().to_owned())
 }
 
 /// Print all assignments in the tracker to ```stdout```.
@@ -146,13 +177,13 @@ fn from_csv(csv: &str) -> Result<Tracker> {
 }
 
 /// Generate a tracker and populate it with random assignments.
-fn gen_rand_tracker() -> Tracker {
+fn _gen_rand_tracker() -> Tracker {
     let mut tracker = Tracker::new();
     let mut rng = thread_rng();
 
     let num_assign: u32 = rng.gen_range(5..=20);
     for i in 0..num_assign {
-        let code = gen_rand_code(&mut tracker);
+        let code = _gen_rand_code(&mut tracker);
         let name = format!("Assignment {}", i + 1);
         let a = Assignment::new(&name, 1.0, code).unwrap();
         tracker.track(a).unwrap();
@@ -162,7 +193,7 @@ fn gen_rand_tracker() -> Tracker {
 }
 
 /// Generate a random class code.
-fn gen_rand_code(tracker: &mut Tracker) -> Rc<ClassCode> {
+fn _gen_rand_code(tracker: &mut Tracker) -> Rc<ClassCode> {
     let i: u32 = thread_rng().gen_range(2..=5);
     let code = format!("RAND10{}", i - 2);
     tracker.get_code(&code).unwrap()
