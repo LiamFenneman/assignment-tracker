@@ -1,4 +1,4 @@
-use std::{error::Error, rc::Rc};
+use std::{env, error::Error, fs, path::Path, rc::Rc};
 
 use rand::prelude::*;
 use tracker_lib::{assignment::InvalidError, Assignment, ClassCode, Tracker};
@@ -6,28 +6,37 @@ use tracker_lib::{assignment::InvalidError, Assignment, ClassCode, Tracker};
 type Result<T> = std::result::Result<T, Box<dyn Error + 'static>>;
 
 fn main() {
-    let mut tracker = gen_random_tracker();
-    println!("get_all()");
-    println!("{:#?}", tracker.get_all());
-    println!("\n");
+    let tracker = gen_random_tracker();
 
-    println!("get_all_from_class()");
-    let code = tracker.get_code("RAND101").unwrap();
-    println!("{:#?}", tracker.get_all_from_class(Rc::clone(&code)));
-    println!("\n");
+    let args: Vec<String> = env::args().skip(1).collect();
 
-    println!("to_csv()");
-    let a1 = tracker.get_all().first().unwrap();
-    println!("{}", to_csv(a1));
-    let mut a2 = Assignment::new("Exam", 20.0, Rc::clone(&code)).unwrap();
-    a2.set_mark(90.0).unwrap();
-    println!("{}", to_csv(&a2));
-    println!("\n");
+    let cmd = args
+        .get(0)
+        .expect("CLI requires at least 1 argument to be passed");
 
-    let csv = "RAND100,Assignment 1,None,1.0\r\nRAND101,Exam,90.0,20.0";
-    let tracker = from_csv(csv).unwrap();
-    println!("{:#?}", tracker.get_all());
-    println!("\n");
+    match cmd {
+        _ if cmd == "write" => {
+            if let Some(filename) = args.get(1) {
+                write_file(&tracker, filename.trim()).unwrap();
+            }
+        }
+        _ => panic!("CLI was passed an unknown argument"),
+    }
+}
+
+fn write_file(tracker: &Tracker, filename: &str) -> Result<()> {
+    let path = Path::new(filename);
+    let mut contents = String::new();
+    for a in tracker.get_all() {
+        contents.push_str(&to_csv(a));
+        contents.push('\n');
+    }
+
+    if let Err(e) = fs::write(path, contents) {
+        return Err(Box::new(e));
+    }
+
+    Ok(())
 }
 
 fn to_csv(ass: &Assignment) -> String {
