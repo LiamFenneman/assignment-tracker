@@ -20,23 +20,34 @@ fn main() {
                 write_file(&tracker, filename.trim()).unwrap();
             }
         }
+        _ if cmd == "read" => {
+            if let Some(filename) = args.get(1) {
+                let tracker = read_file(filename.trim()).unwrap();
+                println!("{:#?}", tracker);
+            }
+        }
         _ => panic!("CLI was passed an unknown argument"),
     }
 }
 
 fn write_file(tracker: &Tracker, filename: &str) -> Result<()> {
-    let path = Path::new(filename);
     let mut contents = String::new();
     for a in tracker.get_all() {
         contents.push_str(&to_csv(a));
         contents.push('\n');
     }
 
-    if let Err(e) = fs::write(path, contents) {
+    if let Err(e) = fs::write(Path::new(filename), contents) {
         return Err(Box::new(e));
     }
 
     Ok(())
+}
+
+fn read_file(filename: &str) -> Result<Tracker> {
+    let contents = fs::read_to_string(Path::new(filename)).unwrap();
+    let tracker = from_csv(&contents)?;
+    Ok(tracker)
 }
 
 fn to_csv(ass: &Assignment) -> String {
