@@ -48,12 +48,12 @@ impl Tracker {
     }
 
     /// Untrack an assignment with the given name and class code.
-    pub fn untrack(&mut self, name: &str, class: ClassCode) -> ValidResult {
+    pub fn untrack(&mut self, name: &str, class: &ClassCode) -> ValidResult {
         // filter out assignments
         let filtered: Vec<&Assignment> = self
             .list
             .iter()
-            .filter(|a| a.name() == name && *a.class_code() == class)
+            .filter(|a| a.name() == name && *a.class_code() == *class)
             .collect();
 
         let len = filtered.len();
@@ -132,7 +132,7 @@ mod tests {
     fn untrack_valid() {
         let mut tracker = gen_tracker(3);
         assert_eq!(3, tracker.list.len());
-        let r = tracker.untrack("Assignment 2", ClassCode::new("TEST123").unwrap());
+        let r = tracker.untrack("Assignment 2", &ClassCode::new("TEST123").unwrap());
         assert!(r.is_ok());
         assert_eq!(2, tracker.list.len());
     }
@@ -141,7 +141,7 @@ mod tests {
     fn untrack_invalid_1() {
         let mut tracker = gen_tracker(3);
         assert_eq!(3, tracker.list.len());
-        let r = tracker.untrack("Assignment", ClassCode::new("SOME101").unwrap());
+        let r = tracker.untrack("Assignment", &ClassCode::new("SOME101").unwrap());
         assert!(r.is_err());
         assert_eq!(3, tracker.list.len());
     }
@@ -150,7 +150,7 @@ mod tests {
     fn untrack_invalid_2() {
         let mut tracker = gen_tracker(3);
         assert_eq!(3, tracker.list.len());
-        let r = tracker.untrack("Assignment 3", ClassCode::new("OTHR222").unwrap());
+        let r = tracker.untrack("Assignment 3", &ClassCode::new("OTHR222").unwrap());
         assert!(r.is_err());
         assert_eq!(3, tracker.list.len());
     }
