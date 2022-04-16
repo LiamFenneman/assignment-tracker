@@ -1,23 +1,33 @@
-use std::rc::Rc;
+use std::{error::Error, rc::Rc};
 
 use rand::prelude::*;
-use tracker_lib::{Assignment, ClassCode, Tracker};
+use tracker_lib::{assignment::InvalidError, Assignment, ClassCode, Tracker};
+
+type Result<T> = std::result::Result<T, Box<dyn Error + 'static>>;
 
 fn main() {
     let mut tracker = gen_random_tracker();
     println!("get_all()");
-    println!("{:#?}\n", tracker.get_all());
+    println!("{:#?}", tracker.get_all());
+    println!("\n");
 
     println!("get_all_from_class()");
     let code = tracker.get_code("RAND101").unwrap();
-    println!("{:#?}\n", tracker.get_all_from_class(Rc::clone(&code)));
+    println!("{:#?}", tracker.get_all_from_class(Rc::clone(&code)));
+    println!("\n");
 
     println!("to_csv()");
     let a1 = tracker.get_all().first().unwrap();
-    println!("{}\n", to_csv(a1));
+    println!("{}", to_csv(a1));
     let mut a2 = Assignment::new("Exam", 20.0, Rc::clone(&code)).unwrap();
     a2.set_mark(90.0).unwrap();
-    println!("{}\n", to_csv(&a2));
+    println!("{}", to_csv(&a2));
+    println!("\n");
+
+    let csv = "RAND100,Assignment 1,None,1.0\r\nRAND101,Exam,90.0,20.0";
+    let tracker = from_csv(csv).unwrap();
+    println!("{:#?}", tracker.get_all());
+    println!("\n");
 }
 
 fn to_csv(ass: &Assignment) -> String {
@@ -36,6 +46,41 @@ fn to_csv(ass: &Assignment) -> String {
             ass.value()
         ),
     }
+}
+
+fn from_csv(csv: &str) -> Result<Tracker> {
+    let mut tracker = Tracker::new();
+
+    for line in csv.lines() {
+        let vec: Vec<&str> = line.split(",").collect();
+
+        // parse the class code, name, and value
+        let code = match tracker.get_code(vec.get(0).expect("Line must have a class code")) {
+            Ok(c) => c,
+            Err(e) => return Err(Box::new(InvalidError::with_msg(e))),
+        };
+        let name: &str = vec.get(1).expect("Line must have a name");
+        let value: f64 = vec.get(3).expect("Line must have a value").parse()?;
+
+        // create the assignment
+        let mut ass = Assignment::new(name, value, code)?;
+
+        // add the mark if there is one
+        let v2 = vec.get(2).expect("Line must have a mark or None");
+        if let Ok(mark) = v2.parse() {
+            ass.set_mark(mark)?;
+        } else if *v2 != "None" {
+            // if a number can't be parsed then it must be None
+            return Err(Box::new(InvalidError::with_msg(
+                "Mark part of CSV must be a number (#.#) or 'None'",
+            )));
+        }
+
+        // add the assignment to the tracker
+        tracker.track(ass)?;
+    }
+
+    Ok(tracker)
 }
 
 fn gen_random_tracker() -> Tracker {
@@ -57,4 +102,56 @@ fn gen_rand_code(tracker: &mut Tracker) -> Rc<ClassCode> {
     let i: u32 = thread_rng().gen_range(2..=5);
     let code = format!("RAND10{}", i - 2);
     tracker.get_code(&code).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_csv_valid() {
+        let csv = "RAND100,Assignment 1,None,1.0\r\nRAND101,Exam,90.0,20.0";
+        let tracker = from_csv(csv).unwrap();
+        for (i, line) in csv.lines().enumerate() {
+            assert_eq!(line, to_csv(tracker.get_all().get(i).unwrap()))
+        }
+    }
+
+    #[test]
+    fn from_csv_valid_1() {
+        let csv = "RAND100,Assignment 1,None,1.0\r\nRAND101,Exam,90.0,20.0";
+        let tracker = from_csv(csv);
+        assert!(tracker.is_ok());
+        assert_eq!(2, tracker.unwrap().get_all().len());
+    }
+
+    #[test]
+    fn from_csv_valid_2() {
+        let csv = "";
+        assert_eq!(Tracker::new(), from_csv(csv).unwrap());
+    }
+
+    #[test]
+    fn from_csv_invalid_1() {
+        let csv = ",,,";
+        assert!(from_csv(csv).is_err());
+    }
+
+    #[test]
+    fn from_csv_invalid_2() {
+        let csv = "\r\n\r\n\r\n";
+        assert!(from_csv(csv).is_err());
+    }
+
+    #[test]
+    fn from_csv_invalid_3() {
+        let csv = "something,is,here,?";
+        assert!(from_csv(csv).is_err());
+    }
+
+    #[test]
+    fn from_csv_invalid_4() {
+        let csv = "RAND100,Assignment 1,NONE,1.0";
+        assert!(from_csv(csv).is_err());
+    }
 }
