@@ -1,6 +1,6 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 lazy_static! {
     static ref RE: Regex = Regex::new(r"^[A-Z]{4}\d{3}$").unwrap();
@@ -27,6 +27,26 @@ impl ClassCode {
 impl fmt::Display for ClassCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ClassCodes(pub Vec<Rc<ClassCode>>);
+
+impl ClassCodes {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn get(&mut self, s: &str) -> Rc<ClassCode> {
+        if let Some(c) = self.0.iter().find(|r| r.0 == s) {
+            return Rc::clone(c);
+        }
+
+        let cc = ClassCode::new(s).unwrap();
+        let rc = Rc::new(cc);
+        self.0.push(rc);
+        return Rc::clone(self.0.last().unwrap());
     }
 }
 
@@ -74,5 +94,30 @@ mod tests {
         assert!(cc.is_err());
         let cc = ClassCode::new("CLASS11");
         assert!(cc.is_err());
+    }
+
+    #[test]
+    fn class_codes_1() {
+        let mut codes = ClassCodes::new();
+
+        // get multiple times but the actual number of ClassCode instances is 1
+        codes.get("TEST111");
+        codes.get("TEST111");
+
+        assert_eq!(1, codes.0.len());
+    }
+
+    #[test]
+    fn class_codes_2() {
+        let mut codes = ClassCodes::new();
+
+        // 5 different class codes creates 5 instances
+        codes.get("TEST001");
+        codes.get("TEST002");
+        codes.get("TEST003");
+        codes.get("TEST004");
+        codes.get("TEST005");
+
+        assert_eq!(5, codes.0.len());
     }
 }

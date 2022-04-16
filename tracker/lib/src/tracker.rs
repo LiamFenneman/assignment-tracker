@@ -1,4 +1,4 @@
-use crate::{Assignment, ClassCode};
+use crate::{Assignment, ClassCode, ClassCodes};
 
 /// Track assignments.
 #[derive(Debug, PartialEq, PartialOrd)]
@@ -7,6 +7,8 @@ pub struct Tracker {
 }
 
 type ValidResult = Result<(), &'static str>;
+
+const CODES: ClassCodes = ClassCodes(vec![]);
 
 impl Tracker {
     /// Create a new default tracker.
