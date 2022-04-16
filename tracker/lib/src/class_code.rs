@@ -1,13 +1,12 @@
 use regex::Regex;
-use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 lazy_static! {
     static ref RE: Regex = Regex::new(r"^[A-Z]{4}\d{3}$").unwrap();
 }
 
 /// String wrapper to enforce the Class Code invariant.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub struct ClassCode(String);
 
 impl ClassCode {
@@ -27,6 +26,26 @@ impl ClassCode {
 impl fmt::Display for ClassCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ClassCodes(pub Vec<Rc<ClassCode>>);
+
+impl ClassCodes {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn get(&mut self, s: &str) -> Result<Rc<ClassCode>, &'static str> {
+        if let Some(c) = self.0.iter().find(|r| r.0 == s) {
+            return Ok(Rc::clone(c));
+        }
+
+        let cc = ClassCode::new(s)?;
+        let rc = Rc::new(cc);
+        self.0.push(rc);
+        Ok(Rc::clone(self.0.last().unwrap()))
     }
 }
 
@@ -74,5 +93,43 @@ mod tests {
         assert!(cc.is_err());
         let cc = ClassCode::new("CLASS11");
         assert!(cc.is_err());
+    }
+
+    #[test]
+    fn class_codes_1() {
+        let mut codes = ClassCodes::new();
+
+        // get multiple times but the actual number of ClassCode instances is 1
+        let a = codes.get("TEST111");
+        let b = codes.get("TEST111");
+        assert!(a.is_ok());
+        assert!(b.is_ok());
+        assert_eq!(1, codes.0.len());
+    }
+
+    #[test]
+    fn class_codes_2() {
+        let mut codes = ClassCodes::new();
+
+        // 5 different class codes creates 5 instances
+        let _ = codes.get("TEST001");
+        let _ = codes.get("TEST002");
+        let _ = codes.get("TEST003");
+        let _ = codes.get("TEST004");
+        let _ = codes.get("TEST005");
+
+        assert_eq!(5, codes.0.len());
+    }
+
+    #[test]
+    fn class_codes_3() {
+        let mut codes = ClassCodes::new();
+        let a = codes.get("");
+        let b = codes.get("blah blah blah");
+        let c = codes.get("blah122");
+        assert!(a.is_err());
+        assert!(b.is_err());
+        assert!(c.is_err());
+        assert_eq!(0, codes.0.len());
     }
 }
