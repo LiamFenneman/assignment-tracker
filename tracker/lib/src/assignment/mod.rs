@@ -8,7 +8,7 @@ use std::{cmp, fmt, result};
 use crate::ClassCode;
 
 /// Representation of a single assignment.
-#[derive(PartialEq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct Assignment {
     name: String,
     mark: Option<f64>,
