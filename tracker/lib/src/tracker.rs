@@ -1,20 +1,22 @@
-use crate::{Assignment, ClassCode, ClassCodes};
+use std::rc::Rc;
+
+use crate::{class_code::ClassCodes, Assignment, ClassCode};
 
 /// Track assignments.
 #[derive(Debug, PartialEq, PartialOrd)]
 pub struct Tracker {
     list: Vec<Assignment>,
+    codes: ClassCodes,
 }
 
 type ValidResult = Result<(), &'static str>;
-
-const CODES: ClassCodes = ClassCodes(vec![]);
 
 impl Tracker {
     /// Create a new default tracker.
     pub fn new() -> Self {
         let list = Vec::new();
-        Self { list }
+        let codes = ClassCodes::new();
+        Self { list, codes }
     }
 
     /// Add an assignment to be tracked.
@@ -50,7 +52,7 @@ impl Tracker {
     }
 
     /// Untrack an assignment with the given name and class code.
-    pub fn untrack(&mut self, name: &str, class: &ClassCode) -> ValidResult {
+    pub fn untrack(&mut self, name: &str, class: Rc<ClassCode>) -> ValidResult {
         // filter out assignments
         let filtered: Vec<&Assignment> = self
             .list
@@ -82,11 +84,17 @@ impl Tracker {
     }
 
     /// Get a reference to all the assignments which belong to a given class.
-    pub fn get_all_from_class(&self, class: &ClassCode) -> Vec<&Assignment> {
+    pub fn get_all_from_class(&self, class: Rc<ClassCode>) -> Vec<&Assignment> {
         self.list
             .iter()
             .filter(|a| *a.class_code() == *class)
             .collect()
+    }
+
+    /// Get class code from string literal.
+    pub fn get_code(&mut self, str: &str) -> Result<Rc<ClassCode>, &'static str> {
+        let cc = self.codes.get(str)?;
+        Ok(Rc::clone(&cc))
     }
 }
 
@@ -104,7 +112,8 @@ mod tests {
     #[test]
     fn track_valid() {
         let mut tracker = Tracker::new();
-        let a = Assignment::new("Assignment 1", 25.0, ClassCode::new("SOME101").unwrap()).unwrap();
+        let a =
+            Assignment::new("Assignment 1", 25.0, tracker.get_code("SOME101").unwrap()).unwrap();
         let b = a.clone();
         let track = tracker.track(a);
         assert!(track.is_ok());
@@ -115,7 +124,8 @@ mod tests {
     #[test]
     fn track_invalid_1() {
         let mut tracker = Tracker::new();
-        let a = Assignment::new("Assignment 1", 25.0, ClassCode::new("SOME101").unwrap()).unwrap();
+        let a =
+            Assignment::new("Assignment 1", 25.0, tracker.get_code("SOME101").unwrap()).unwrap();
         let b = a.clone();
         let r = tracker.track_many(vec![a, b]);
         assert!(r.is_err())
@@ -124,8 +134,10 @@ mod tests {
     #[test]
     fn track_invalid_2() {
         let mut tracker = Tracker::new();
-        let a = Assignment::new("Assignment 1", 75.0, ClassCode::new("SOME101").unwrap()).unwrap();
-        let b = Assignment::new("Assignment 2", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
+        let a =
+            Assignment::new("Assignment 1", 75.0, tracker.get_code("SOME101").unwrap()).unwrap();
+        let b =
+            Assignment::new("Assignment 2", 50.0, tracker.get_code("SOME101").unwrap()).unwrap();
         let r = tracker.track_many(vec![a, b]);
         assert!(r.is_err())
     }
@@ -134,7 +146,8 @@ mod tests {
     fn untrack_valid() {
         let mut tracker = gen_tracker(3);
         assert_eq!(3, tracker.list.len());
-        let r = tracker.untrack("Assignment 2", &ClassCode::new("TEST123").unwrap());
+        let code = tracker.get_code("TEST123").unwrap();
+        let r = tracker.untrack("Assignment 2", code);
         assert!(r.is_ok());
         assert_eq!(2, tracker.list.len());
     }
@@ -143,7 +156,8 @@ mod tests {
     fn untrack_invalid_1() {
         let mut tracker = gen_tracker(3);
         assert_eq!(3, tracker.list.len());
-        let r = tracker.untrack("Assignment", &ClassCode::new("SOME101").unwrap());
+        let code = tracker.get_code("TEST123").unwrap();
+        let r = tracker.untrack("Assignment", code);
         assert!(r.is_err());
         assert_eq!(3, tracker.list.len());
     }
@@ -152,7 +166,8 @@ mod tests {
     fn untrack_invalid_2() {
         let mut tracker = gen_tracker(3);
         assert_eq!(3, tracker.list.len());
-        let r = tracker.untrack("Assignment 3", &ClassCode::new("OTHR222").unwrap());
+        let code = tracker.get_code("TEST123").unwrap();
+        let r = tracker.untrack("Assignment 3", code);
         assert!(r.is_err());
         assert_eq!(3, tracker.list.len());
     }
@@ -160,33 +175,27 @@ mod tests {
     #[test]
     fn from_class() {
         let mut tracker = gen_tracker(3);
+        let code = tracker.get_code("OTHR456").unwrap();
         tracker
-            .track(Assignment::new("Test 1", 50.0, ClassCode::new("OTHR456").unwrap()).unwrap())
+            .track(Assignment::new("Test 1", 50.0, Rc::clone(&code)).unwrap())
             .unwrap();
         tracker
-            .track(Assignment::new("Test 2", 50.0, ClassCode::new("OTHR456").unwrap()).unwrap())
+            .track(Assignment::new("Test 2", 50.0, Rc::clone(&code)).unwrap())
             .unwrap();
         assert_eq!(5, tracker.get_all().len());
-        assert_eq!(
-            3,
-            tracker
-                .get_all_from_class(&ClassCode::new("TEST123").unwrap())
-                .len()
-        );
-        assert_eq!(
-            2,
-            tracker
-                .get_all_from_class(&ClassCode::new("OTHR456").unwrap())
-                .len()
-        );
+        let code = tracker.get_code("TEST123").unwrap();
+        assert_eq!(3, tracker.get_all_from_class(code).len());
+        let code = tracker.get_code("OTHR456").unwrap();
+        assert_eq!(2, tracker.get_all_from_class(code).len());
     }
 
     fn gen_tracker(size: usize) -> Tracker {
         let mut tracker = Tracker::new();
+        let cc = tracker.get_code("TEST123").unwrap();
         for i in 0..size {
-            let cc = ClassCode::new("TEST123").unwrap();
+            let code = Rc::clone(&cc);
             tracker
-                .track(Assignment::new(&format!("Assignment {}", i), 10.0, cc).unwrap())
+                .track(Assignment::new(&format!("Assignment {}", i), 10.0, code).unwrap())
                 .unwrap();
         }
         tracker

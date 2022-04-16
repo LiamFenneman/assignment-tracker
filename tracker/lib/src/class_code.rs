@@ -38,15 +38,15 @@ impl ClassCodes {
         Self(Vec::new())
     }
 
-    pub fn get(&mut self, s: &str) -> Rc<ClassCode> {
+    pub fn get(&mut self, s: &str) -> Result<Rc<ClassCode>, &'static str> {
         if let Some(c) = self.0.iter().find(|r| r.0 == s) {
-            return Rc::clone(c);
+            return Ok(Rc::clone(c));
         }
 
-        let cc = ClassCode::new(s).unwrap();
+        let cc = ClassCode::new(s)?;
         let rc = Rc::new(cc);
         self.0.push(rc);
-        return Rc::clone(self.0.last().unwrap());
+        Ok(Rc::clone(self.0.last().unwrap()))
     }
 }
 
@@ -101,9 +101,10 @@ mod tests {
         let mut codes = ClassCodes::new();
 
         // get multiple times but the actual number of ClassCode instances is 1
-        codes.get("TEST111");
-        codes.get("TEST111");
-
+        let a = codes.get("TEST111");
+        let b = codes.get("TEST111");
+        assert!(a.is_ok());
+        assert!(b.is_ok());
         assert_eq!(1, codes.0.len());
     }
 
@@ -112,11 +113,11 @@ mod tests {
         let mut codes = ClassCodes::new();
 
         // 5 different class codes creates 5 instances
-        codes.get("TEST001");
-        codes.get("TEST002");
-        codes.get("TEST003");
-        codes.get("TEST004");
-        codes.get("TEST005");
+        let _ = codes.get("TEST001");
+        let _ = codes.get("TEST002");
+        let _ = codes.get("TEST003");
+        let _ = codes.get("TEST004");
+        let _ = codes.get("TEST005");
 
         assert_eq!(5, codes.0.len());
     }

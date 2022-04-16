@@ -2,19 +2,18 @@ mod invalid_error;
 pub use invalid_error::InvalidError;
 
 use regex::Regex;
-use serde::{Deserialize, Serialize};
-use std::{cmp, fmt, result};
+use std::{cmp, fmt, rc::Rc, result};
 
 use crate::ClassCode;
 
 /// Representation of a single assignment.
-#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Assignment {
     name: String,
     mark: Option<f64>,
     value: f64,
     percent: Option<f64>,
-    class_code: ClassCode,
+    class_code: Rc<ClassCode>,
 }
 
 pub type Result<T> = result::Result<T, InvalidError>;
@@ -33,11 +32,13 @@ impl Assignment {
     ///
     /// # Examples
     /// ```
+    /// use std::rc::Rc;
     /// use tracker_lib::{Assignment, ClassCode};
-    /// let valid = Assignment::new("Test", 10.0, ClassCode::new("SOME101").unwrap());
+    /// let code = Rc::new(ClassCode::new("SOME101").unwrap());
+    /// let valid = Assignment::new("Test", 10.0, code);
     /// assert!(valid.is_ok());
     /// ```
-    pub fn new(name: &str, value: f64, class_code: ClassCode) -> Result<Self> {
+    pub fn new(name: &str, value: f64, class_code: Rc<ClassCode>) -> Result<Self> {
         let ass = Self {
             name: name.to_string(),
             mark: None,
@@ -70,8 +71,10 @@ impl Assignment {
     ///
     /// # Examples
     /// ```
+    /// use std::rc::Rc;
     /// use tracker_lib::{Assignment, ClassCode};
-    /// let mut assign = Assignment::new("Test", 10.0, ClassCode::new("SOME101").unwrap()).unwrap();
+    /// let code = Rc::new(ClassCode::new("SOME101").unwrap());
+    /// let mut assign = Assignment::new("Test", 10.0, code).unwrap();
     /// assert!(assign.set_mark(80.0).is_ok());
     /// assert!(assign.set_mark(-80.0).is_err());
     /// assert!(assign.set_mark(200.0).is_err());
@@ -113,13 +116,8 @@ impl Assignment {
     }
 
     /// Get the class code for this assignment.
-    pub fn class_code(&self) -> &ClassCode {
-        &self.class_code
-    }
-
-    /// Serialize the Assignment into JSON format.
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(&self).expect("Problem with serialization")
+    pub fn class_code(&self) -> Rc<ClassCode> {
+        Rc::clone(&self.class_code)
     }
 
     /// Check if the assignment is valid.
@@ -195,41 +193,41 @@ mod tests {
 
     #[test]
     fn new_assignment_1() {
-        let assign = Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap());
+        let cc = ClassCode::new("SOME101").unwrap();
+        let assign = Assignment::new("Test 1", 50.0, Rc::new(cc));
         assert!(assign.is_ok());
     }
     #[test]
     fn new_assignment_2() {
-        let assign = Assignment::new(
-            "text is way longer than 20 chars",
-            101.0,
-            ClassCode::new("SOME101").unwrap(),
-        );
+        let cc = ClassCode::new("SOME101").unwrap();
+        let assign = Assignment::new("text is way longer than 20 chars", 101.0, Rc::new(cc));
         assert!(assign.is_err());
     }
     #[test]
     fn new_assignment_3() {
-        let assign = Assignment::new("Test 1", 101.0, ClassCode::new("SOME101").unwrap());
+        let cc = ClassCode::new("SOME101").unwrap();
+        let assign = Assignment::new("Test 1", 101.0, Rc::new(cc));
         assert!(assign.is_err());
     }
     #[test]
     fn new_assignment_4() {
-        let assign = Assignment::new("Test 1", -50.0, ClassCode::new("SOME101").unwrap());
+        let cc = ClassCode::new("SOME101").unwrap();
+        let assign = Assignment::new("Test 1", -50.0, Rc::new(cc));
         assert!(assign.is_err());
     }
 
     #[test]
     fn set_mark() {
-        let mut assign =
-            Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
+        let cc = ClassCode::new("SOME101").unwrap();
+        let mut assign = Assignment::new("Test 1", 50.0, Rc::new(cc)).unwrap();
         assert!(assign.set_mark(80.0).is_ok());
         assert!(assign.set_mark(-80.0).is_err());
         assert!(assign.set_mark(200.0).is_err());
     }
     #[test]
     fn final_pct() {
-        let mut assign =
-            Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
+        let cc = ClassCode::new("SOME101").unwrap();
+        let mut assign = Assignment::new("Test 1", 50.0, Rc::new(cc)).unwrap();
         assert!(assign.set_mark(100.0).is_ok());
         assert!(!assign.final_pct().is_none());
         assert_eq!(50.0, assign.final_pct().unwrap());
@@ -240,14 +238,15 @@ mod tests {
 
     #[test]
     fn is_valid_1() {
-        let assign = Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
+        let cc = ClassCode::new("SOME101").unwrap();
+        let assign = Assignment::new("Test 1", 50.0, Rc::new(cc)).unwrap();
         assert!(assign.is_valid().is_ok());
     }
 
     #[test]
     fn is_valid_2() {
-        let mut assign =
-            Assignment::new("Test 1", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
+        let cc = ClassCode::new("SOME101").unwrap();
+        let mut assign = Assignment::new("Test 1", 50.0, Rc::new(cc)).unwrap();
         assign.set_mark(55.5).unwrap();
         assert!(assign.is_valid().is_ok());
     }
