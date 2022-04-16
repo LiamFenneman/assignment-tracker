@@ -119,7 +119,7 @@ fn from_csv(csv: &str) -> Result<Tracker> {
         // parse the class code, name, and value
         let code = match tracker.get_code(vec.get(0).expect("Line must have a class code")) {
             Ok(c) => c,
-            Err(e) => return Err(Box::new(InvalidError::with_msg(e))),
+            Err(e) => return Err(Box::new(InvalidError(e))),
         };
         let name: &str = vec.get(1).expect("Line must have a name");
         let value: f64 = vec.get(3).expect("Line must have a value").parse()?;
@@ -133,7 +133,7 @@ fn from_csv(csv: &str) -> Result<Tracker> {
             ass.set_mark(mark)?;
         } else if *v2 != "None" {
             // if a number can't be parsed then it must be None
-            return Err(Box::new(InvalidError::with_msg(
+            return Err(Box::new(InvalidError(
                 "Mark part of CSV must be a number (#.#) or 'None'",
             )));
         }

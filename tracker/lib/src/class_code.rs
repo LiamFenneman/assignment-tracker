@@ -10,16 +10,29 @@ lazy_static! {
 pub struct ClassCode(String);
 
 impl ClassCode {
+    /// Create a new [`ClassCode`].
+    ///
+    /// `str` must follow the format: `XXXX###`.
+    ///
+    /// # Example
+    /// ```
+    /// # use tracker_lib::ClassCode;
+    /// /// Valid
+    /// let code = ClassCode::new("TEST123");
+    /// assert!(code.is_ok());
+    ///
+    /// /// Invalid
+    /// assert!(ClassCode::new("test123").is_err());
+    /// assert!(ClassCode::new("CLASS01").is_err());
+    /// assert!(ClassCode::new("my class").is_err());
+    /// assert!(ClassCode::new("").is_err());
+    /// ```
     pub fn new(str: &str) -> Result<Self, &'static str> {
         if !RE.is_match(str) {
             return Err("Given string does not follow the correct format");
         }
 
         Ok(Self(str.to_string()))
-    }
-
-    pub fn get(&self) -> &str {
-        return &self.0;
     }
 }
 

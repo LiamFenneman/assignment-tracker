@@ -13,13 +13,30 @@ type ValidResult = Result<(), &'static str>;
 
 impl Tracker {
     /// Create a new default tracker.
+    ///
+    /// # Example
+    /// ```
+    /// # use tracker_lib::Tracker;
+    /// let tracker = Tracker::new();
+    /// assert_eq!(0, tracker.get_all().len());
+    /// ```
     pub fn new() -> Self {
         let list = Vec::new();
         let codes = ClassCodes::new();
         Self { list, codes }
     }
 
-    /// Add an assignment to be tracked.
+    /// Add an [assignment](Assignment) to be tracked.
+    ///
+    /// # Example
+    /// ```
+    /// # use tracker_lib::{Assignment, Tracker};
+    /// let mut tracker = Tracker::new();
+    /// let assign = Assignment::new("Test", 10.0, tracker.get_code("TEST123")?)?;
+    /// tracker.track(assign)?;
+    /// assert_eq!(1, tracker.get_all().len());
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn track(&mut self, assign: Assignment) -> ValidResult {
         for a in self.list.iter() {
             // check for duplicate assignments
@@ -42,7 +59,23 @@ impl Tracker {
         Ok(())
     }
 
-    /// Add many assignments to be tracked.
+    /// Add many [assignments](Assignment) to be tracked.
+    ///
+    /// # Example
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, Tracker};
+    /// let mut tracker = Tracker::new();
+    /// let code = tracker.get_code("TEST123")?;
+    /// let assigns = vec![
+    ///     Assignment::new("Test 1", 10.0, Rc::clone(&code))?,
+    ///     Assignment::new("Test 2", 10.0, Rc::clone(&code))?,
+    ///     Assignment::new("Test 3", 10.0, Rc::clone(&code))?,
+    /// ];
+    /// tracker.track_many(assigns)?;
+    /// assert_eq!(3, tracker.get_all().len());
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn track_many(&mut self, ass: Vec<Assignment>) -> ValidResult {
         for a in ass {
             self.track(a)?;
@@ -51,7 +84,31 @@ impl Tracker {
         Ok(())
     }
 
-    /// Untrack an assignment with the given name and class code.
+    /// Untrack an [assignment](Assignment) with the given name and [class code](ClassCode).
+    ///
+    /// # Example
+    /// ***Note:*** *this example contains the example from [`Tracker::track_many()`]*
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, Tracker};
+    /// # let mut tracker = Tracker::new();
+    /// let code = tracker.get_code("TEST123")?;
+    /// # let assigns = vec![
+    /// #     Assignment::new("Test 1", 10.0, Rc::clone(&code))?,
+    /// #     Assignment::new("Test 2", 10.0, Rc::clone(&code))?,
+    /// #     Assignment::new("Test 3", 10.0, Rc::clone(&code))?,
+    /// # ];
+    /// # tracker.track_many(assigns)?;
+    /// # assert_eq!(3, tracker.get_all().len());
+    ///
+    /// /// Assignment exists
+    /// assert!(tracker.untrack("Test 1", Rc::clone(&code)).is_ok());
+    /// assert_eq!(2, tracker.get_all().len());
+    ///
+    /// /// Assignment doesn't exist
+    /// assert!(tracker.untrack("Something Else", Rc::clone(&code)).is_err());
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn untrack(&mut self, name: &str, class: Rc<ClassCode>) -> ValidResult {
         // filter out assignments
         let filtered: Vec<&Assignment> = self
@@ -78,12 +135,56 @@ impl Tracker {
         panic!("Could not find the index of the assignment");
     }
 
-    /// Get a reference to all the assignments which are tracked.
+    /// Get a reference to all the [assignments](Assignment) which are tracked.
+    ///
+    /// # Example
+    /// ***Note:*** *this example contains the example from [`Tracker::track_many()`]*
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, Tracker};
+    /// # let mut tracker = Tracker::new();
+    /// # let code = tracker.get_code("TEST123")?;
+    /// # let assigns = vec![
+    /// #     Assignment::new("Test 1", 10.0, Rc::clone(&code))?,
+    /// #     Assignment::new("Test 2", 10.0, Rc::clone(&code))?,
+    /// #     Assignment::new("Test 3", 10.0, Rc::clone(&code))?,
+    /// # ];
+    /// # tracker.track_many(assigns.clone())?;
+    /// let all = tracker.get_all();
+    /// assert_eq!(&assigns, all);
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn get_all(&self) -> &Vec<Assignment> {
         &self.list
     }
 
-    /// Get a reference to all the assignments which belong to a given class.
+    /// Get a reference to all the [assignments](Assignment) which belong to a given [class](ClassCode).
+    ///
+    /// # Example
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, Tracker};
+    /// let mut tracker = Tracker::new();
+    /// let code1 = tracker.get_code("TEST123")?;
+    /// let code2 = tracker.get_code("OTHR456")?;
+    /// let assigns = vec![
+    ///     /// Assignments for class TEST123
+    ///     Assignment::new("Test 1", 10.0, Rc::clone(&code1))?,
+    ///     Assignment::new("Test 2", 10.0, Rc::clone(&code1))?,
+    ///     Assignment::new("Test 3", 10.0, Rc::clone(&code1))?,
+    ///     /// Assignments for class OTHR456
+    ///     Assignment::new("Other Test 1", 10.0, Rc::clone(&code2))?,
+    ///     Assignment::new("Other Test 2", 10.0, Rc::clone(&code2))?,
+    /// ];
+    /// tracker.track_many(assigns.clone())?;
+    ///
+    /// let all_code1 = tracker.get_all_from_class(Rc::clone(&code1));
+    /// let all_code2 = tracker.get_all_from_class(Rc::clone(&code2));
+    /// assert_eq!(3, all_code1.len());
+    /// assert_eq!(2, all_code2.len());
+    ///
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn get_all_from_class(&self, class: Rc<ClassCode>) -> Vec<&Assignment> {
         self.list
             .iter()
@@ -91,7 +192,18 @@ impl Tracker {
             .collect()
     }
 
-    /// Get class code from string literal.
+    /// Get [class code](ClassCode) from string literal.
+    ///
+    /// See [`ClassCode::new()`] for string literal format.
+    ///
+    /// # Example
+    /// ```
+    /// # use tracker_lib::Tracker;
+    /// let mut tracker = Tracker::new();
+    /// assert!(tracker.get_code("TEST123").is_ok());
+    /// assert!(tracker.get_code("TEST456").is_ok());
+    /// assert!(tracker.get_code("TEST789").is_ok());
+    /// ```
     pub fn get_code(&mut self, str: &str) -> Result<Rc<ClassCode>, &'static str> {
         let cc = self.codes.get(str)?;
         Ok(Rc::clone(&cc))

@@ -24,19 +24,32 @@ lazy_static! {
 }
 
 impl Assignment {
-    /// Create a new Assignment.
+    /// Create a new [`Assignment`].
     ///
     /// # Conditions
-    /// - ```name``` length within range ```3..=20```
-    /// - ```value``` within range ```0..=100```
+    /// - `name` length within range `3..=20`
+    /// - `value` within range `0..=100`
     ///
     /// # Examples
     /// ```
-    /// use std::rc::Rc;
-    /// use tracker_lib::{Assignment, ClassCode};
-    /// let code = Rc::new(ClassCode::new("SOME101").unwrap());
-    /// let valid = Assignment::new("Test", 10.0, code);
-    /// assert!(valid.is_ok());
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, ClassCode};
+    /// let code = Rc::new(ClassCode::new("SOME101")?);
+    /// let assign = Assignment::new("Test", 10.0, code);
+    /// assert!(assign.is_ok());
+    /// # Ok::<(), &'static str>(())
+    /// ```
+    ///
+    /// ***Note:*** *using [`Rc`] allows for using the same instance of [`ClassCode`]*
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, ClassCode};
+    /// let code = Rc::new(ClassCode::new("SOME101")?);
+    /// let assign1 = Assignment::new("Test 1", 10.0, Rc::clone(&code));
+    /// let assign2 = Assignment::new("Test 2", 10.0, Rc::clone(&code));
+    /// assert!(assign1.is_ok());
+    /// assert!(assign2.is_ok());
+    /// # Ok::<(), &'static str>(())
     /// ```
     pub fn new(name: &str, value: f64, class_code: Rc<ClassCode>) -> Result<Self> {
         let ass = Self {
@@ -54,36 +67,69 @@ impl Assignment {
         Ok(ass)
     }
 
-    /// Get the name of the assignment.
+    /// Get the name of the [assignment](Assignment).
+    ///
+    /// # Example
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, ClassCode};
+    /// let code = Rc::new(ClassCode::new("SOME101")?);
+    /// let assign = Assignment::new("Test", 10.0, code)?;
+    /// assert_eq!("Test", assign.name());
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn name(&self) -> &String {
         &self.name
     }
 
-    /// Get the mark for the assignment.
+    /// Get the mark for the [assignment](Assignment).
+    ///
+    /// # Example
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, ClassCode};
+    /// let code = Rc::new(ClassCode::new("SOME101")?);
+    /// let mut assign = Assignment::new("Test", 10.0, code)?;
+    ///
+    /// /// Mark is `None` by default.
+    /// assert_eq!(None, assign.mark());
+    ///
+    /// assign.set_mark(90.0);
+    /// assert_eq!(90.0, assign.mark().unwrap());
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn mark(&self) -> Option<f64> {
         self.mark
     }
 
-    /// Set the mark for the assignment.
+    /// Set the mark for the [assignment](Assignment).
     ///
     /// # Conditions
-    /// If the mark is not ```None``` then both ```m >= 0.0``` and ```m <= 100.0``` must hold for the mark to be set.
+    /// If the mark is not `None` then both `m >= 0.0` and `m <= 100.0` must hold for the mark to be set.
     ///
     /// # Examples
     /// ```
-    /// use std::rc::Rc;
-    /// use tracker_lib::{Assignment, ClassCode};
-    /// let code = Rc::new(ClassCode::new("SOME101").unwrap());
-    /// let mut assign = Assignment::new("Test", 10.0, code).unwrap();
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, ClassCode};
+    /// let code = Rc::new(ClassCode::new("SOME101")?);
+    /// let mut assign = Assignment::new("Test", 10.0, code)?;
+    ///
+    /// /// Valid mark
+    /// assert!(assign.set_mark(0.01).is_ok());
     /// assert!(assign.set_mark(80.0).is_ok());
-    /// assert!(assign.set_mark(-80.0).is_err());
-    /// assert!(assign.set_mark(200.0).is_err());
+    /// assert!(assign.set_mark(100.0).is_ok());
+    ///
+    /// /// Invalid marks
+    /// assert!(assign.set_mark(-1.0).is_err());
+    /// assert!(assign.set_mark(0.0).is_err());
+    /// assert!(assign.set_mark(101.0).is_err());
+    /// # Ok::<(), &'static str>(())
     /// ```
     pub fn set_mark(&mut self, mark: f64) -> Result<()> {
-        if mark < 0.0 {
-            return Err(InvalidError::with_msg("Mark must be positive"));
+        if mark <= 0.0 {
+            return Err(InvalidError("Mark must be positive"));
         } else if mark > 100.0 {
-            return Err(InvalidError::with_msg("Mark must be below 100.0"));
+            return Err(InvalidError("Mark must be below 100.0"));
         }
 
         self.mark = Some(mark);
@@ -91,13 +137,36 @@ impl Assignment {
         Ok(())
     }
 
-    /// Remove the mark for this assignment.
+    /// Remove the mark for this [assignment](Assignment).
+    ///
+    /// # Example
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, ClassCode};
+    /// let code = Rc::new(ClassCode::new("SOME101")?);
+    /// let mut assign = Assignment::new("Test", 10.0, code)?;
+    /// assign.set_mark(80.0)?;
+    ///
+    /// assign.remove_mark();
+    /// assert_eq!(None, assign.mark());
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn remove_mark(&mut self) {
         self.mark = None;
         self.update_final_pct();
     }
 
-    /// Get the value of the assignment with regards to the final grade.
+    /// Get the value of the [assignment](Assignment) with regards to the final grade.
+    ///
+    /// # Example
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, ClassCode};
+    /// let code = Rc::new(ClassCode::new("SOME101")?);
+    /// let mut assign = Assignment::new("Test", 25.0, code)?;
+    /// assert_eq!(25.0, assign.value());
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn value(&self) -> f64 {
         self.value
     }
@@ -110,12 +179,38 @@ impl Assignment {
         }
     }
 
-    /// Get the final grade contribution for this assignment.
+    /// Get the final grade contribution for this [assignment](Assignment).
+    ///
+    /// # Example
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, ClassCode};
+    /// let code = Rc::new(ClassCode::new("SOME101")?);
+    /// let mut assign = Assignment::new("Test", 10.0, code)?;
+    ///
+    /// /// Final percentage is `None` by default.
+    /// assert_eq!(None, assign.final_pct());
+    ///
+    /// /// Setting the mark updates the final percentage.
+    /// assign.set_mark(80.0)?;
+    /// assert_eq!(8.0, assign.final_pct().unwrap());
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn final_pct(&self) -> Option<f64> {
         self.percent
     }
 
-    /// Get the class code for this assignment.
+    /// Get the class code for this [assignment](Assignment).
+    ///
+    /// # Example
+    /// ```
+    /// # use std::rc::Rc;
+    /// # use tracker_lib::{Assignment, ClassCode};
+    /// let code = Rc::new(ClassCode::new("SOME101")?);
+    /// let mut assign = Assignment::new("Test", 10.0, Rc::clone(&code))?;
+    /// assert_eq!(code, assign.class_code());
+    /// # Ok::<(), &'static str>(())
+    /// ```
     pub fn class_code(&self) -> Rc<ClassCode> {
         Rc::clone(&self.class_code)
     }
@@ -127,30 +222,28 @@ impl Assignment {
     /// - ```mark``` within range ```0..=100``` or ```None```
     /// - ```value``` within range ```0..=100```
     /// - ```percent``` within range ```0..=100``` or ```None```
-    pub fn is_valid(&self) -> Result<()> {
+    fn is_valid(&self) -> Result<()> {
         if !(3..=20).contains(&self.name().len()) {
-            return Err(InvalidError::with_msg(
+            return Err(InvalidError(
                 "Name must have at least 1 char and at most 20 chars",
             ));
         }
 
         if !(0.0..=100.0).contains(&self.value()) {
-            return Err(InvalidError::with_msg(
+            return Err(InvalidError(
                 "Value of an assignment should be in range 0..=100",
             ));
         }
 
         if let Some(m) = &self.mark() {
             if !(0.0..=100.0).contains(m) {
-                return Err(InvalidError::with_msg(
-                    "Mark must be within range 0..=100 or None",
-                ));
+                return Err(InvalidError("Mark must be within range 0..=100 or None"));
             }
         }
 
         if let Some(p) = &self.final_pct() {
             if !(0.0..=100.0).contains(p) {
-                return Err(InvalidError::with_msg(
+                return Err(InvalidError(
                     "Final percentage must be within range 0..=100 or None",
                 ));
             }
