@@ -120,4 +120,16 @@ mod tests {
 
         assert_eq!(5, codes.0.len());
     }
+
+    #[test]
+    fn class_codes_3() {
+        let mut codes = ClassCodes::new();
+        let a = codes.get("");
+        let b = codes.get("blah blah blah");
+        let c = codes.get("blah122");
+        assert!(a.is_err());
+        assert!(b.is_err());
+        assert!(c.is_err());
+        assert_eq!(0, codes.0.len());
+    }
 }
