@@ -7,8 +7,6 @@ use tracker_lib::{assignment::InvalidError, Assignment, ClassCode, Tracker};
 type Result<T> = std::result::Result<T, Box<dyn Error + 'static>>;
 
 fn main() {
-    let tracker = gen_random_tracker();
-
     let args: Vec<String> = env::args().skip(1).collect();
 
     let cmd = args
@@ -18,6 +16,7 @@ fn main() {
     match cmd {
         _ if cmd == "write" => {
             if let Some(filename) = args.get(1) {
+                let tracker = gen_rand_tracker();
                 write_file(&tracker, filename.trim()).unwrap();
             }
         }
@@ -37,6 +36,7 @@ fn main() {
     }
 }
 
+/// Print all assignments in the tracker to ```stdout```.
 fn print_table(tracker: &Tracker) {
     let mut table = Table::new();
     table.add_row(Row::new(vec![
@@ -68,6 +68,7 @@ fn print_table(tracker: &Tracker) {
     table.printstd();
 }
 
+/// Write all assignments from Tracker into a file.
 fn write_file(tracker: &Tracker, filename: &str) -> Result<()> {
     let mut contents = String::new();
     for a in tracker.get_all() {
@@ -82,12 +83,14 @@ fn write_file(tracker: &Tracker, filename: &str) -> Result<()> {
     Ok(())
 }
 
+/// Read from the given file and create a Tracker.
 fn read_file(filename: &str) -> Result<Tracker> {
-    let contents = fs::read_to_string(Path::new(filename)).unwrap();
+    let contents = fs::read_to_string(Path::new(filename))?;
     let tracker = from_csv(&contents)?;
     Ok(tracker)
 }
 
+/// Convert an assignment into CSV.
 fn to_csv(ass: &Assignment) -> String {
     match ass.mark() {
         Some(m) => format!(
@@ -106,6 +109,7 @@ fn to_csv(ass: &Assignment) -> String {
     }
 }
 
+/// Convert CSV into a Tracker.
 fn from_csv(csv: &str) -> Result<Tracker> {
     let mut tracker = Tracker::new();
 
@@ -141,7 +145,8 @@ fn from_csv(csv: &str) -> Result<Tracker> {
     Ok(tracker)
 }
 
-fn gen_random_tracker() -> Tracker {
+/// Generate a tracker and populate it with random assignments.
+fn gen_rand_tracker() -> Tracker {
     let mut tracker = Tracker::new();
     let mut rng = thread_rng();
 
@@ -156,6 +161,7 @@ fn gen_random_tracker() -> Tracker {
     tracker
 }
 
+/// Generate a random class code.
 fn gen_rand_code(tracker: &mut Tracker) -> Rc<ClassCode> {
     let i: u32 = thread_rng().gen_range(2..=5);
     let code = format!("RAND10{}", i - 2);
