@@ -18,9 +18,20 @@ impl Tracker {
     /// Add an assignment to be tracked.
     pub fn track(&mut self, assign: Assignment) -> ValidResult {
         for a in self.list.iter() {
+            // check for duplicate assignments
             if assign == *a {
                 return Err("Cannot add duplicate assignments");
             }
+        }
+
+        // ensure the total value of all assignments in the class are below 100.0
+        let total_value: f64 = self
+            .get_all_from_class(assign.class_code())
+            .iter()
+            .map(|a| a.value())
+            .sum();
+        if total_value + assign.value() > 100.0 {
+            return Err("Total value of assignments in the class will be more than 100.0");
         }
 
         self.list.push(assign);
@@ -36,7 +47,7 @@ impl Tracker {
         Ok(())
     }
 
-    /// Untrack an assignment with the given name.
+    /// Untrack an assignment with the given name and class code.
     pub fn untrack(&mut self, name: &str, class: ClassCode) -> ValidResult {
         // filter out assignments
         let filtered: Vec<&Assignment> = self
@@ -69,10 +80,10 @@ impl Tracker {
     }
 
     /// Get a reference to all the assignments which belong to a given class.
-    pub fn get_all_from_class(&self, class: ClassCode) -> Vec<&Assignment> {
+    pub fn get_all_from_class(&self, class: &ClassCode) -> Vec<&Assignment> {
         self.list
             .iter()
-            .filter(|a| *a.class_code() == class)
+            .filter(|a| *a.class_code() == *class)
             .collect()
     }
 }
@@ -100,7 +111,7 @@ mod tests {
     }
 
     #[test]
-    fn track_invalid() {
+    fn track_invalid_1() {
         let mut tracker = Tracker::new();
         let a = Assignment::new("Assignment 1", 25.0, ClassCode::new("SOME101").unwrap()).unwrap();
         let b = a.clone();
@@ -109,10 +120,19 @@ mod tests {
     }
 
     #[test]
+    fn track_invalid_2() {
+        let mut tracker = Tracker::new();
+        let a = Assignment::new("Assignment 1", 75.0, ClassCode::new("SOME101").unwrap()).unwrap();
+        let b = Assignment::new("Assignment 2", 50.0, ClassCode::new("SOME101").unwrap()).unwrap();
+        let r = tracker.track_many(vec![a, b]);
+        assert!(r.is_err())
+    }
+
+    #[test]
     fn untrack_valid() {
         let mut tracker = gen_tracker(3);
         assert_eq!(3, tracker.list.len());
-        let r = tracker.untrack("Assignment 2", ClassCode::new("SOME101").unwrap());
+        let r = tracker.untrack("Assignment 2", ClassCode::new("TEST123").unwrap());
         assert!(r.is_ok());
         assert_eq!(2, tracker.list.len());
     }
@@ -135,12 +155,36 @@ mod tests {
         assert_eq!(3, tracker.list.len());
     }
 
+    #[test]
+    fn from_class() {
+        let mut tracker = gen_tracker(3);
+        tracker
+            .track(Assignment::new("Test 1", 50.0, ClassCode::new("OTHR456").unwrap()).unwrap())
+            .unwrap();
+        tracker
+            .track(Assignment::new("Test 2", 50.0, ClassCode::new("OTHR456").unwrap()).unwrap())
+            .unwrap();
+        assert_eq!(5, tracker.get_all().len());
+        assert_eq!(
+            3,
+            tracker
+                .get_all_from_class(&ClassCode::new("TEST123").unwrap())
+                .len()
+        );
+        assert_eq!(
+            2,
+            tracker
+                .get_all_from_class(&ClassCode::new("OTHR456").unwrap())
+                .len()
+        );
+    }
+
     fn gen_tracker(size: usize) -> Tracker {
         let mut tracker = Tracker::new();
         for i in 0..size {
             let cc = ClassCode::new("TEST123").unwrap();
             tracker
-                .track(Assignment::new(&format!("Assignment {}", i), 25.0, cc).unwrap())
+                .track(Assignment::new(&format!("Assignment {}", i), 10.0, cc).unwrap())
                 .unwrap();
         }
         tracker

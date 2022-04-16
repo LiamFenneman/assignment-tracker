@@ -7,7 +7,7 @@ lazy_static! {
 }
 
 /// String wrapper to enforce the Class Code invariant.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Clone, Hash)]
 pub struct ClassCode(String);
 
 impl ClassCode {
