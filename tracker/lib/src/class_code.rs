@@ -1,5 +1,4 @@
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::{fmt, rc::Rc};
 
 lazy_static! {
@@ -7,7 +6,7 @@ lazy_static! {
 }
 
 /// String wrapper to enforce the Class Code invariant.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub struct ClassCode(String);
 
 impl ClassCode {
