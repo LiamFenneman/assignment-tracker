@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate prettytable;
+
 use prettytable::{Cell, Row, Table};
 use rand::prelude::*;
 use std::{
@@ -17,6 +20,8 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let filename = args.get(0).expect("A filename (or path) must be provided");
     let mut tracker = read_file(&filename).expect("Problem finding the given filename");
+
+    println!("Enter command or help to get a list of commands");
 
     loop {
         let input: Vec<String> = get_input()
@@ -42,10 +47,19 @@ fn main() {
     }
 }
 
+/// Execute a command based on `cmd` using the `args` and [`tracker`](Tracker).
 fn do_command(cmd: &str, args: &Vec<String>, tracker: &mut Tracker) -> Result<()> {
     match cmd {
+        _ if cmd == "help" => {
+            ptable!(
+                ["COMMAND", "ARGUMENTS", "DESCRIPTION"],
+                ["help", "", "print this message"],
+                ["write", "<filename>", "write the tracker to the given file"],
+                ["print", "", "print a table of all assignments"]
+            );
+        }
         _ if cmd == "write" => {
-            if let Some(filename) = args.get(1) {
+            if let Some(filename) = args.get(0) {
                 println!("Writing to {}...", filename);
                 write_file(&tracker, filename).unwrap();
             }
@@ -59,6 +73,10 @@ fn do_command(cmd: &str, args: &Vec<String>, tracker: &mut Tracker) -> Result<()
     Ok(())
 }
 
+/// Get user input.
+///
+/// Print "`> `" to the console to indicate the user can enter commands.
+/// Then retrieve the user input and trim the line.
 fn get_input() -> Result<String> {
     print!("> ");
     io::stdout().flush()?;
