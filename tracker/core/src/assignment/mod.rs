@@ -173,10 +173,7 @@ impl Assignment {
 
     /// Update the final percentage.
     fn update_final_pct(&mut self) {
-        self.percent = match self.mark() {
-            Some(m) => Some((m / 100.0) * self.value()),
-            None => None,
-        }
+        self.percent = self.mark().map(|m| (m / 100.0) * self.value())
     }
 
     /// Get the final grade contribution for this [assignment](Assignment).

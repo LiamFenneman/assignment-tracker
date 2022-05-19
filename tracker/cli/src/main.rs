@@ -19,7 +19,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error + 'static>>;
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let filename = args.get(0).expect("A filename (or path) must be provided");
-    let mut tracker = read_file(&filename).expect("Problem finding the given filename");
+    let mut tracker = read_file(filename).expect("Problem finding the given filename");
 
     println!("Enter command or help to get a list of commands");
 
@@ -29,7 +29,7 @@ fn main() {
                 eprintln!("Problem getting input: {}", e);
                 process::exit(1);
             })
-            .split(" ")
+            .split(' ')
             .map(|e| e.to_owned())
             .collect();
 
@@ -48,7 +48,7 @@ fn main() {
 }
 
 /// Execute a command based on `cmd` using the `args` and [`tracker`](Tracker).
-fn do_command(cmd: &str, args: &Vec<String>, tracker: &mut Tracker) -> Result<()> {
+fn do_command(cmd: &str, args: &[String], tracker: &mut Tracker) -> Result<()> {
     match cmd {
         _ if cmd == "help" => {
             ptable!(
@@ -61,11 +61,11 @@ fn do_command(cmd: &str, args: &Vec<String>, tracker: &mut Tracker) -> Result<()
         _ if cmd == "write" => {
             if let Some(filename) = args.get(0) {
                 println!("Writing to {}...", filename);
-                write_file(&tracker, filename).unwrap();
+                write_file(tracker, filename).unwrap();
             }
         }
         _ if cmd == "print" => {
-            print_table(&tracker);
+            print_table(tracker);
         }
         _ => panic!("CLI was passed an unknown argument"),
     }
@@ -163,7 +163,7 @@ fn from_csv(csv: &str) -> Result<Tracker> {
     let mut tracker = Tracker::new();
 
     for line in csv.lines() {
-        let vec: Vec<&str> = line.split(",").collect();
+        let vec: Vec<&str> = line.split(',').collect();
 
         // parse the class code, name, and value
         let code = match tracker.get_code(vec.get(0).expect("Line must have a class code")) {
