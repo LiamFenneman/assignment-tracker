@@ -4,5 +4,6 @@ members = [
     "tracker/core",
     "tracker/cli",
     "tracker/web/backend",
-    "tracker/web/frontend"
+    "tracker/web/frontend",
+    "tracker/test_cli"
 ]

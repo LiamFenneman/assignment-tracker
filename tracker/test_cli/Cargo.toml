@@ -1,0 +1,9 @@
+[package]
+name = "tracker_test_cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracker_core = {path = "../core"}
+anyhow = "1.0"
+pretty_env_logger = "0.4.0"
