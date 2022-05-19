@@ -33,7 +33,7 @@ impl Assignment {
     /// # Examples
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, ClassCode};
+    /// # use tracker_core::{Assignment, ClassCode};
     /// let code = Rc::new(ClassCode::new("SOME101")?);
     /// let assign = Assignment::new("Test", 10.0, code);
     /// assert!(assign.is_ok());
@@ -43,7 +43,7 @@ impl Assignment {
     /// ***Note:*** *using [`Rc`] allows for using the same instance of [`ClassCode`]*
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, ClassCode};
+    /// # use tracker_core::{Assignment, ClassCode};
     /// let code = Rc::new(ClassCode::new("SOME101")?);
     /// let assign1 = Assignment::new("Test 1", 10.0, Rc::clone(&code));
     /// let assign2 = Assignment::new("Test 2", 10.0, Rc::clone(&code));
@@ -72,7 +72,7 @@ impl Assignment {
     /// # Example
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, ClassCode};
+    /// # use tracker_core::{Assignment, ClassCode};
     /// let code = Rc::new(ClassCode::new("SOME101")?);
     /// let assign = Assignment::new("Test", 10.0, code)?;
     /// assert_eq!("Test", assign.name());
@@ -87,7 +87,7 @@ impl Assignment {
     /// # Example
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, ClassCode};
+    /// # use tracker_core::{Assignment, ClassCode};
     /// let code = Rc::new(ClassCode::new("SOME101")?);
     /// let mut assign = Assignment::new("Test", 10.0, code)?;
     ///
@@ -110,7 +110,7 @@ impl Assignment {
     /// # Examples
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, ClassCode};
+    /// # use tracker_core::{Assignment, ClassCode};
     /// let code = Rc::new(ClassCode::new("SOME101")?);
     /// let mut assign = Assignment::new("Test", 10.0, code)?;
     ///
@@ -142,7 +142,7 @@ impl Assignment {
     /// # Example
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, ClassCode};
+    /// # use tracker_core::{Assignment, ClassCode};
     /// let code = Rc::new(ClassCode::new("SOME101")?);
     /// let mut assign = Assignment::new("Test", 10.0, code)?;
     /// assign.set_mark(80.0)?;
@@ -161,7 +161,7 @@ impl Assignment {
     /// # Example
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, ClassCode};
+    /// # use tracker_core::{Assignment, ClassCode};
     /// let code = Rc::new(ClassCode::new("SOME101")?);
     /// let mut assign = Assignment::new("Test", 25.0, code)?;
     /// assert_eq!(25.0, assign.value());
@@ -181,7 +181,7 @@ impl Assignment {
     /// # Example
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, ClassCode};
+    /// # use tracker_core::{Assignment, ClassCode};
     /// let code = Rc::new(ClassCode::new("SOME101")?);
     /// let mut assign = Assignment::new("Test", 10.0, code)?;
     ///
@@ -202,7 +202,7 @@ impl Assignment {
     /// # Example
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, ClassCode};
+    /// # use tracker_core::{Assignment, ClassCode};
     /// let code = Rc::new(ClassCode::new("SOME101")?);
     /// let mut assign = Assignment::new("Test", 10.0, Rc::clone(&code))?;
     /// assert_eq!(code, assign.class_code());

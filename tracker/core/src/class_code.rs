@@ -16,7 +16,7 @@ impl ClassCode {
     ///
     /// # Example
     /// ```
-    /// # use tracker_lib::ClassCode;
+    /// # use tracker_core::ClassCode;
     /// /// Valid
     /// let code = ClassCode::new("TEST123");
     /// assert!(code.is_ok());

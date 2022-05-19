@@ -16,7 +16,7 @@ impl Tracker {
     ///
     /// # Example
     /// ```
-    /// # use tracker_lib::Tracker;
+    /// # use tracker_core::Tracker;
     /// let tracker = Tracker::new();
     /// assert_eq!(0, tracker.get_all().len());
     /// ```
@@ -30,7 +30,7 @@ impl Tracker {
     ///
     /// # Example
     /// ```
-    /// # use tracker_lib::{Assignment, Tracker};
+    /// # use tracker_core::{Assignment, Tracker};
     /// let mut tracker = Tracker::new();
     /// let assign = Assignment::new("Test", 10.0, tracker.get_code("TEST123")?)?;
     /// tracker.track(assign)?;
@@ -64,7 +64,7 @@ impl Tracker {
     /// # Example
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, Tracker};
+    /// # use tracker_core::{Assignment, Tracker};
     /// let mut tracker = Tracker::new();
     /// let code = tracker.get_code("TEST123")?;
     /// let assigns = vec![
@@ -90,7 +90,7 @@ impl Tracker {
     /// ***Note:*** *this example contains the example from [`Tracker::track_many()`]*
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, Tracker};
+    /// # use tracker_core::{Assignment, Tracker};
     /// # let mut tracker = Tracker::new();
     /// let code = tracker.get_code("TEST123")?;
     /// # let assigns = vec![
@@ -141,7 +141,7 @@ impl Tracker {
     /// ***Note:*** *this example contains the example from [`Tracker::track_many()`]*
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, Tracker};
+    /// # use tracker_core::{Assignment, Tracker};
     /// # let mut tracker = Tracker::new();
     /// # let code = tracker.get_code("TEST123")?;
     /// # let assigns = vec![
@@ -163,7 +163,7 @@ impl Tracker {
     /// # Example
     /// ```
     /// # use std::rc::Rc;
-    /// # use tracker_lib::{Assignment, Tracker};
+    /// # use tracker_core::{Assignment, Tracker};
     /// let mut tracker = Tracker::new();
     /// let code1 = tracker.get_code("TEST123")?;
     /// let code2 = tracker.get_code("OTHR456")?;
@@ -198,7 +198,7 @@ impl Tracker {
     ///
     /// # Example
     /// ```
-    /// # use tracker_lib::Tracker;
+    /// # use tracker_core::Tracker;
     /// let mut tracker = Tracker::new();
     /// assert!(tracker.get_code("TEST123").is_ok());
     /// assert!(tracker.get_code("TEST456").is_ok());

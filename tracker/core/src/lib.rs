@@ -6,7 +6,7 @@
 //! The following is all you need to get started working with the library.
 //! ```
 //! # use std::rc::Rc;
-//! # use tracker_lib::{Assignment, Tracker};
+//! # use tracker_core::{Assignment, Tracker};
 //! // Create the tracker
 //! let mut tracker = Tracker::new();
 //!
