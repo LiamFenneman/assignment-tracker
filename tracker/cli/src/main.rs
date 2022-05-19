@@ -12,7 +12,7 @@ use std::{
     process,
     rc::Rc,
 };
-use tracker_lib::{assignment::InvalidError, Assignment, ClassCode, Tracker};
+use tracker_core::{assignment::InvalidError, Assignment, ClassCode, Tracker};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + 'static>>;
 
