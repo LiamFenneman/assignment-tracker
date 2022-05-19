@@ -4,7 +4,7 @@ use tracker_core::*;
 
 fn main() -> Result<()> {
     pretty_env_logger::init();
-    let mut a = Assignment::builder(0, &Class)
+    let mut a = Assignment::builder(0) //
         .name("Test")
         .value(50.0)
         .build();

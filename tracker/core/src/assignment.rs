@@ -1,4 +1,3 @@
-use crate::Class;
 use anyhow::{bail, Result};
 use log::{error, info, trace, warn};
 use std::fmt::Display;
@@ -8,23 +7,21 @@ pub const MAX_NAME_LEN: usize = 48;
 
 /// A single assignment.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Assignment<'c> {
+pub struct Assignment {
     id: u64,
     name: String,
     mark: Option<f64>,
     value: f64,
-    class: &'c Class,
 }
 
-impl<'c> Assignment<'c> {
+impl Assignment {
     /// Create a new [assignment](Assignment) using the [builder](AssignmentBuilder) pattern.
-    pub fn builder(id: u64, class: &'c Class) -> AssignmentBuilder<'c> {
+    pub fn builder(id: u64) -> AssignmentBuilder {
         AssignmentBuilder {
             id,
             name: None,
             mark: None,
             value: None,
-            class,
         }
     }
 
@@ -74,43 +71,36 @@ impl<'c> Assignment<'c> {
     pub fn value(&self) -> f64 {
         self.value
     }
-
-    /// Get a reference to the [class](Class) which this [assignment](Assignment) belongs to.
-    pub fn class(&self) -> &Class {
-        self.class
-    }
 }
 
-impl Display for Assignment<'_> {
+impl Display for Assignment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let (id, name, _class) = (self.id, &self.name, self.class);
-        write!(f, "{{class}} :: {name} [ID: {id}]")
+        let (id, name) = (self.id, &self.name);
+        write!(f, "{name} [ID: {id}]")
     }
 }
 
-impl PartialOrd for Assignment<'_> {
+impl PartialOrd for Assignment {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.id.partial_cmp(&other.id)
     }
 }
 
-pub struct AssignmentBuilder<'c> {
+pub struct AssignmentBuilder {
     id: u64,
     name: Option<String>,
     mark: Option<f64>,
     value: Option<f64>,
-    class: &'c Class,
 }
 
-impl<'c> AssignmentBuilder<'c> {
+impl AssignmentBuilder {
     /// Build an [Assignment].
-    pub fn build(&mut self) -> Assignment<'c> {
+    pub fn build(&mut self) -> Assignment {
         let a = Assignment {
             id: self.id,
             name: self.name.to_owned().expect("A name must be provided."),
             mark: self.mark,
             value: self.value.expect("A value must be provided."),
-            class: self.class,
         };
 
         trace!("Built assignment: {a:?}");
@@ -186,7 +176,7 @@ mod tests {
     #[should_panic]
     #[case("Test", Some(90.0), 100.1)]
     fn build(#[case] name: &str, #[case] mark: Option<f64>, #[case] value: f64) {
-        let a = Assignment::builder(0, &Class)
+        let a = Assignment::builder(0)
             .name(name)
             .value(value)
             .mark(mark)
@@ -198,7 +188,6 @@ mod tests {
                 name: name.to_owned(),
                 mark,
                 value,
-                class: &Class
             },
             a
         );
@@ -208,7 +197,7 @@ mod tests {
     #[case("Assignment 1", Some(90.0), 30.0)]
     #[case("Assignment 2", None, 30.0)]
     fn display(#[case] name: &str, #[case] mark: Option<f64>, #[case] value: f64) {
-        let a = Assignment::builder(0, &Class)
+        let a = Assignment::builder(0)
             .name(name)
             .value(value)
             .mark(mark)
@@ -221,7 +210,7 @@ mod tests {
     #[case("Assignment 1", 90.0, 30.0)]
     #[case("Assignment 2", 75.0, 30.0)]
     fn set_mark_ok(#[case] name: &str, #[case] mark: f64, #[case] value: f64) {
-        let mut a = Assignment::builder(0, &Class)
+        let mut a = Assignment::builder(0) //
             .name(name)
             .value(value)
             .build();
@@ -234,7 +223,6 @@ mod tests {
                 name: name.to_owned(),
                 mark: Some(mark),
                 value,
-                class: &Class
             },
             a
         );
@@ -244,7 +232,7 @@ mod tests {
     #[case("Assignment 1", 190.0, 30.0)]
     #[case("Assignment 2", -75.0, 30.0)]
     fn set_mark_err(#[case] name: &str, #[case] mark: f64, #[case] value: f64) {
-        let mut a = Assignment::builder(0, &Class)
+        let mut a = Assignment::builder(0) //
             .name(name)
             .value(value)
             .build();
