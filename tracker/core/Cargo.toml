@@ -4,5 +4,9 @@ version = "0.5.0"
 edition = "2021"
 
 [dependencies]
-regex = "1.5.5"
-lazy_static = "1.4.0"
+anyhow = "1.0"
+log = "0.4"
+
+[dev-dependencies]
+rstest = "0.13"
+mockall = "0.11"
