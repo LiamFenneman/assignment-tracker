@@ -1,4 +1,4 @@
-mod assignment;
+pub mod assignment;
 pub use assignment::Assignment;
 
 mod class;

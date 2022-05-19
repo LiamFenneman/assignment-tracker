@@ -1,6 +1,8 @@
 use crate::Class;
 use log::trace;
-const MAX_NAME_LEN: usize = 48;
+
+/// Maximum length of the name of an [assignment](Assignment) in bytes.
+pub const MAX_NAME_LEN: usize = 48;
 
 /// A single assignment.
 #[derive(Debug, Clone, PartialEq)]
@@ -13,9 +15,9 @@ pub struct Assignment<'c> {
 }
 
 impl<'c> Assignment<'c> {
-    /// Create a new [assignment] using the [builder] pattern.
-    pub fn builder(id: u64) -> Builder<'c> {
-        Builder {
+    /// Create a new [assignment](Assignment) using the [builder](AssignmentBuilder) pattern.
+    pub fn builder(id: u64) -> AssignmentBuilder<'c> {
+        AssignmentBuilder {
             id,
             name: None,
             mark: None,
@@ -25,7 +27,7 @@ impl<'c> Assignment<'c> {
     }
 }
 
-pub struct Builder<'c> {
+pub struct AssignmentBuilder<'c> {
     id: u64,
     name: Option<String>,
     mark: Option<f64>,
@@ -33,8 +35,8 @@ pub struct Builder<'c> {
     class: Option<&'c Class>,
 }
 
-impl<'c> Builder<'c> {
-    /// Build an Assignment.
+impl<'c> AssignmentBuilder<'c> {
+    /// Build an [Assignment].
     pub fn build(&mut self) -> Assignment<'c> {
         let a = Assignment {
             id: self.id,
@@ -49,7 +51,7 @@ impl<'c> Builder<'c> {
         a
     }
 
-    /// Set the name of the [assignment].
+    /// Set the name of the [assignment](Assignment).
     ///
     /// # Panics
     /// - `name` is empty
@@ -67,7 +69,7 @@ impl<'c> Builder<'c> {
         self
     }
 
-    /// Set the value of the assignment.
+    /// Set the value of the [assignment](Assignment).
     ///
     /// # Panics
     /// - `value` outside the range `0.0..=100.0`
@@ -80,7 +82,7 @@ impl<'c> Builder<'c> {
         self
     }
 
-    /// Set the mark of the assignment.
+    /// Set the mark of the [assignment](Assignment).
     ///
     /// # Panics
     /// - `mark` outside the range `0.0..=100.0`
