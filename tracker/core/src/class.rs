@@ -28,21 +28,17 @@ impl Class {
     ///
     /// # Constraints
     /// - `total_value + assign.value() > 100.0`
-    /// - `assignments` already contains `assign`
-    /// - An assignment in the class already has the same ID
+    /// - An [assignment](Assignment) in the [class](Class) already has the same ID
+    /// - An [assignment](Assignment) in the [class](Class) already has the same name
     pub fn add_assignment(&mut self, assign: Assignment) -> Result<()> {
         let total = self.total_value + assign.value();
         if total > 100.0 {
-            err!("Could not add {assign} due to the total value of the class exceeds 100.0");
-        }
-
-        if self.assignments.iter().any(|(_, a)| *a == assign) {
-            err!("Could not add {assign} due to it already existing within the class.");
+            err!("Could not add {assign} -> Total value of the class exceeds 100.0");
         }
 
         if self.assignments.iter().any(|(id, _)| *id == assign.id()) {
             let id = assign.id();
-            err!("Could not add {assign} due to the ID ({id}) already existing within the class.");
+            err!("Could not add {assign} -> ID ({id}) already exists.");
         }
 
         if self
@@ -51,9 +47,7 @@ impl Class {
             .any(|(_, a)| a.name() == assign.name())
         {
             let name = assign.name();
-            err!(
-                "Could not add {assign} due to the name ({name}) already existing within the class."
-            );
+            err!("Could not add {assign} -> Name ({name}) already exists.");
         }
 
         info!("Added {assign} to {self}. Total value now: {total}");
@@ -244,6 +238,7 @@ mod tests {
             class.add_assignment(Assignment::builder(0).name("Test 1").value(50.0).build())?;
 
             let res = class.add_mark(0, mark);
+            println!("{res:?}");
             assert!(res.is_err());
 
             Ok(())
