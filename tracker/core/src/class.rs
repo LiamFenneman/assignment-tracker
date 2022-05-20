@@ -1,14 +1,14 @@
 use crate::{err, Assignment};
 use anyhow::{bail, Result};
 use log::{error, info};
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 /// Representation of a generic class or university paper.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Class {
     id: u64,
     short_name: String,
-    assignments: Vec<Assignment>,
+    assignments: HashMap<u64, Assignment>,
     total_value: f64,
 }
 
@@ -19,7 +19,7 @@ impl Class {
         Class {
             id,
             short_name,
-            assignments: Vec::new(),
+            assignments: HashMap::new(),
             total_value: 0.0,
         }
     }
@@ -36,16 +36,20 @@ impl Class {
             err!("Could not add {assign} due to the total value of the class exceeds 100.0");
         }
 
-        if self.assignments.iter().any(|a| *a == assign) {
+        if self.assignments.iter().any(|(_, a)| *a == assign) {
             err!("Could not add {assign} due to it already existing within the class.");
         }
 
-        if self.assignments.iter().any(|a| a.id() == assign.id()) {
+        if self.assignments.iter().any(|(id, _)| *id == assign.id()) {
             let id = assign.id();
             err!("Could not add {assign} due to the ID ({id}) already existing within the class.");
         }
 
-        if self.assignments.iter().any(|a| a.name() == assign.name()) {
+        if self
+            .assignments
+            .iter()
+            .any(|(_, a)| a.name() == assign.name())
+        {
             let name = assign.name();
             err!(
                 "Could not add {assign} due to the name ({name}) already existing within the class."
@@ -54,32 +58,21 @@ impl Class {
 
         info!("Added {assign} to {self}. Total value now: {total}");
         self.total_value = total;
-        self.assignments.push(assign);
+        self.assignments.insert(assign.id(), assign);
         Ok(())
     }
 
     /// Remove an [assignment](Assignment) from the [class](Class) which has the given ID.
     pub fn remove_assignment(&mut self, id: u64) -> Result<Assignment> {
-        let Some(i) = self.assignments.iter().position(|a| a.id() == id) else {
-            err!("Could not find assignment ID: {id} in {self}.");
-        };
-
-        let a = self.assignments.remove(i);
-        info!("Removed {a} from {self}");
-        Ok(a)
-    }
-
-    /// Get an [assignment](Assignment) from the [class](Class) which has the given ID.
-    pub fn get_assignment(&self, id: u64) -> Result<&Assignment> {
-        let Some(i) = self.assignments.iter().position(|a| a.id() == id) else {
-            err!("Could not find assignment ID: {id} in {self}.");
-        };
-
-        let Some(a) = self.assignments.get(i) else {
-            err!("Invalid index provided: {i}");
-        };
-
-        Ok(a)
+        match self.assignments.remove(&id) {
+            Some(a) => {
+                info!("Removed {a} from {self}");
+                Ok(a)
+            }
+            None => {
+                err!("Could not find assignment ID: {id} in {self}.");
+            }
+        }
     }
 
     /// Add the mark to an [assignment](Assignment) with the provided ID.
@@ -91,7 +84,12 @@ impl Class {
             err!("The given mark ({mark}) is outside the valid range (0.0..=100.0).");
         }
 
-        self.get_assignment_mut(id)?.set_mark(mark)?;
+        match self.assignments.get_mut(&id) {
+            Some(a) => a.set_mark(mark)?,
+            None => {
+                err!("Could not find assignment ID: {id} in {self}.");
+            }
+        }
 
         Ok(())
     }
@@ -107,35 +105,13 @@ impl Class {
     }
 
     /// Get a reference to the list of [assignments](Assignment) for this [class](Class).
-    pub fn assignments(&self) -> &Vec<Assignment> {
+    pub fn assignments(&self) -> &HashMap<u64, Assignment> {
         &self.assignments
     }
 
     /// Get the total value of all the [assignments](Assignment).
     pub fn total_value(&self) -> f64 {
         self.total_value
-    }
-
-    fn get_assignment_mut(&mut self, id: u64) -> Result<&mut Assignment> {
-        let Some(i) = self.assignments.iter().position(|a| a.id() == id) else {
-            err!("Could not find assignment ID: {id} in {self}.");
-        };
-
-        let Some(a) = self.assignments.get_mut(i) else {
-            err!("Invalid index provided: {i}");
-        };
-
-        Ok(a)
-    }
-}
-
-impl IntoIterator for Class {
-    type Item = Assignment;
-
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.assignments.into_iter()
     }
 }
 
@@ -254,8 +230,8 @@ mod tests {
 
             let res = class.add_mark(0, mark);
             assert!(res.is_ok());
-            assert!(class.assignments()[0].mark().is_some());
-            assert_eq!(mark, class.assignments()[0].mark().unwrap());
+            assert!(class.assignments()[&0].mark().is_some());
+            assert_eq!(mark, class.assignments()[&0].mark().unwrap());
 
             Ok(())
         }
