@@ -1,3 +1,4 @@
+use crate::err;
 use anyhow::{bail, Result};
 use log::{error, info, trace, warn};
 use std::fmt::Display;
@@ -31,8 +32,7 @@ impl Assignment {
     /// - `mark` outside of range `0.0..=100.0`
     pub fn set_mark(&mut self, mark: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&mark) {
-            error!("Mark must be within 0.0 and 100.0 -> Given mark: {mark}");
-            bail!("Mark must be within 0.0 and 100.0");
+            err!("Mark must be within 0.0 and 100.0 -> Given mark: {mark}");
         }
 
         info!("{self} -> Set mark to {mark}");

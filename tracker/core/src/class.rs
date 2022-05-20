@@ -61,12 +61,39 @@ impl Class {
     /// Remove an [assignment](Assignment) from the [class](Class) which has the given ID.
     pub fn remove_assignment(&mut self, id: u64) -> Result<Assignment> {
         let Some(i) = self.assignments.iter().position(|a| a.id() == id) else {
-            bail!("Could not find assignment ID: {id} in {self}.");
+            err!("Could not find assignment ID: {id} in {self}.");
         };
 
         let a = self.assignments.remove(i);
         info!("Removed {a} from {self}");
         Ok(a)
+    }
+
+    /// Get an [assignment](Assignment) from the [class](Class) which has the given ID.
+    pub fn get_assignment(&self, id: u64) -> Result<&Assignment> {
+        let Some(i) = self.assignments.iter().position(|a| a.id() == id) else {
+            err!("Could not find assignment ID: {id} in {self}.");
+        };
+
+        let Some(a) = self.assignments.get(i) else {
+            err!("Invalid index provided: {i}");
+        };
+
+        Ok(a)
+    }
+
+    /// Add the mark to an [assignment](Assignment) with the provided ID.
+    ///
+    /// # Constraints
+    /// - `mark` is within range: `0.0..=100.0`
+    pub fn add_mark(&mut self, id: u64, mark: f64) -> Result<()> {
+        if !(0.0..=100.0).contains(&mark) {
+            err!("The given mark ({mark}) is outside the valid range (0.0..=100.0).");
+        }
+
+        self.get_assignment_mut(id)?.set_mark(mark)?;
+
+        Ok(())
     }
 
     /// Get the ID for this [class](Class).
@@ -87,6 +114,18 @@ impl Class {
     /// Get the total value of all the [assignments](Assignment).
     pub fn total_value(&self) -> f64 {
         self.total_value
+    }
+
+    fn get_assignment_mut(&mut self, id: u64) -> Result<&mut Assignment> {
+        let Some(i) = self.assignments.iter().position(|a| a.id() == id) else {
+            err!("Could not find assignment ID: {id} in {self}.");
+        };
+
+        let Some(a) = self.assignments.get_mut(i) else {
+            err!("Invalid index provided: {i}");
+        };
+
+        Ok(a)
     }
 }
 
@@ -199,6 +238,39 @@ mod tests {
             let res = class.remove_assignment(1);
             assert!(res.is_ok());
             assert_eq!(1, class.assignments().len());
+        }
+    }
+
+    mod add_mark {
+        use super::*;
+
+        #[rstest]
+        #[case(0.0)]
+        #[case(50.0)]
+        #[case(100.0)]
+        fn ok(#[case] mark: f64) -> Result<()> {
+            let mut class = Class::new(0, "TEST101");
+            class.add_assignment(Assignment::builder(0).name("Test 1").value(50.0).build())?;
+
+            let res = class.add_mark(0, mark);
+            assert!(res.is_ok());
+            assert!(class.assignments()[0].mark().is_some());
+            assert_eq!(mark, class.assignments()[0].mark().unwrap());
+
+            Ok(())
+        }
+
+        #[rstest]
+        #[case(-1.0)]
+        #[case(101.0)]
+        fn err(#[case] mark: f64) -> Result<()> {
+            let mut class = Class::new(0, "TEST101");
+            class.add_assignment(Assignment::builder(0).name("Test 1").value(50.0).build())?;
+
+            let res = class.add_mark(0, mark);
+            assert!(res.is_err());
+
+            Ok(())
         }
     }
 }
