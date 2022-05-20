@@ -1,6 +1,6 @@
 use crate::{err, Assignment};
 use anyhow::{bail, Result};
-use log::error;
+use log::{error, info};
 use std::fmt::Display;
 
 /// Representation of a generic class or university paper.
@@ -52,9 +52,21 @@ impl Class {
             );
         }
 
+        info!("Added {assign} to {self}. Total value now: {total}");
         self.total_value = total;
         self.assignments.push(assign);
         Ok(())
+    }
+
+    /// Remove an [assignment](Assignment) from the [class](Class) which has the given ID.
+    pub fn remove_assignment(&mut self, id: u64) -> Result<Assignment> {
+        let Some(i) = self.assignments.iter().position(|a| a.id() == id) else {
+            bail!("Could not find assignment ID: {id} in {self}.");
+        };
+
+        let a = self.assignments.remove(i);
+        info!("Removed {a} from {self}");
+        Ok(a)
     }
 
     /// Get the ID for this [class](Class).
@@ -112,6 +124,22 @@ mod tests {
         use super::*;
 
         #[rstest]
+        #[case(None)]
+        #[case(Some(80.0))]
+        fn valid(#[case] mark: Option<f64>) {
+            let mut class = Class::new(0, "TEST101");
+            let res = class.add_assignment(
+                Assignment::builder(0)
+                    .name("Test 1")
+                    .value(50.0)
+                    .mark(mark)
+                    .build(),
+            );
+            assert!(res.is_ok());
+            assert_eq!(1, class.assignments().len());
+        }
+
+        #[rstest]
         #[case(90.0, 15.0, true)]
         #[case(15.0, 90.0, true)]
         #[case(50.0, 50.0, false)]
@@ -149,6 +177,28 @@ mod tests {
             let res = class.add_assignment(b);
             assert!(res.is_err());
             println!("{res:?}");
+        }
+    }
+
+    mod remove_assignment {
+        use super::*;
+
+        #[test]
+        fn valid() {
+            let mut class = Class::new(0, "TEST101");
+            let _ = class.add_assignment(
+                Assignment::builder(0)
+                    .name("Test 1")
+                    .value(50.0)
+                    .mark(Some(80.0))
+                    .build(),
+            );
+            let _ = class.add_assignment(Assignment::builder(1).name("Test 2").value(50.0).build());
+            assert_eq!(2, class.assignments().len());
+
+            let res = class.remove_assignment(1);
+            assert!(res.is_ok());
+            assert_eq!(1, class.assignments().len());
         }
     }
 }

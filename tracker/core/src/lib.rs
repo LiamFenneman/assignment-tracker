@@ -1,3 +1,5 @@
+#![feature(let_else)]
+
 pub mod assignment;
 pub use assignment::Assignment;
 
