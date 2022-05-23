@@ -1,4 +1,4 @@
-use crate::{err, Assignment};
+use crate::{err, Assignment, MAX_NAME_LEN};
 use anyhow::{bail, Result};
 use log::{error, info, trace};
 use std::{collections::HashMap, fmt::Display};
@@ -14,24 +14,35 @@ pub struct Class {
 
 impl Class {
     /// Create a new [Class] providing an ID and short name.
-    pub fn new(id: u64, short_name: &str) -> Self {
-        let short_name = short_name.to_owned();
+    ///
+    /// # Errors
+    /// - `short_name` is empty.
+    /// - `short_name` is longer than [`MAX_NAME_LEN`] (in bytes)
+    pub fn new(id: u64, short_name: &str) -> Result<Self> {
+        if short_name.is_empty() {
+            err!("A short name must be provided.");
+        }
+
+        if short_name.len() > MAX_NAME_LEN {
+            err!("Short name ({short_name}) is too long - must be below {MAX_NAME_LEN} bytes.");
+        }
+
         let c = Class {
             id,
-            short_name,
+            short_name: short_name.to_owned(),
             assignments: HashMap::new(),
             total_value: 0.0,
         };
         trace!("Created class: {c:?}");
-        c
+        Ok(c)
     }
 
-    /// Add a new [assignment](Assignment) to the [class](Class).
+    /// Add a new [assignment](Assignment) to this [class](Class).
     ///
-    /// # Constraints
-    /// - `total_value + assign.value() > 100.0`
-    /// - An [assignment](Assignment) in the [class](Class) already has the same ID
-    /// - An [assignment](Assignment) in the [class](Class) already has the same name
+    /// # Errors
+    /// - Updated `total_value` is larger than `100.0`
+    /// - An [assignment](Assignment) in this [class](Class) already has the same ID
+    /// - An [assignment](Assignment) in this [class](Class) already has the same name
     pub fn add_assignment(&mut self, assign: Assignment) -> Result<()> {
         let total = self.total_value + assign.value();
         if total > 100.0 {
@@ -58,7 +69,10 @@ impl Class {
         Ok(())
     }
 
-    /// Remove an [assignment](Assignment) from the [class](Class) which has the given ID.
+    /// Remove an [assignment](Assignment) from this [class](Class) with the provided ID.
+    ///
+    /// # Errors
+    /// - Could not find an [assignment](Assignment) with `id`
     pub fn remove_assignment(&mut self, id: u64) -> Result<Assignment> {
         match self.assignments.remove(&id) {
             Some(a) => {
@@ -73,8 +87,9 @@ impl Class {
 
     /// Add the mark to an [assignment](Assignment) with the provided ID.
     ///
-    /// # Constraints
-    /// - `mark` is within range: `0.0..=100.0`
+    /// # Errors
+    /// - `mark` is not within range: `0.0..=100.0`
+    /// - Could not find an [assignment](Assignment) with `id`
     pub fn add_mark(&mut self, id: u64, mark: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&mark) {
             err!("The given mark ({mark}) is outside the valid range (0.0..=100.0).");
@@ -91,21 +106,25 @@ impl Class {
     }
 
     /// Get the ID for this [class](Class).
+    #[must_use]
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// Get the short name for this [class](Class).
+    #[must_use]
     pub fn short_name(&self) -> &String {
         &self.short_name
     }
 
     /// Get a reference to the list of [assignments](Assignment) for this [class](Class).
+    #[must_use]
     pub fn assignments(&self) -> &HashMap<u64, Assignment> {
         &self.assignments
     }
 
     /// Get the total value of all the [assignments](Assignment).
+    #[must_use]
     pub fn total_value(&self) -> f64 {
         self.total_value
     }
@@ -123,10 +142,30 @@ mod tests {
     use super::*;
     use rstest::rstest;
 
+    mod new {
+        use super::*;
+
+        #[rstest]
+        #[case("NAME")]
+        #[case("LONGER NAME")]
+        fn ok(#[case] name: &str) {
+            let c = Class::new(0, name);
+            assert!(c.is_ok());
+        }
+
+        #[rstest]
+        #[case("")]
+        #[case("super long name which doesn't really make sense")]
+        fn err(#[case] name: &str) {
+            let c = Class::new(0, name);
+            assert!(c.is_err());
+        }
+    }
+
     #[test]
     fn display() {
         let name = "TEST101";
-        let c = Class::new(0, name);
+        let c = Class::new(0, name).unwrap();
         println!("{c}");
         assert!(format!("{c}").contains(name));
     }
@@ -138,7 +177,7 @@ mod tests {
         #[case(None)]
         #[case(Some(80.0))]
         fn valid(#[case] mark: Option<f64>) {
-            let mut class = Class::new(0, "TEST101");
+            let mut class = Class::new(0, "TEST101").unwrap();
             let a = match mark {
                 Some(m) => Assignment::new_with_mark(0, "Test", 75.0, m),
                 None => Assignment::new(0, "Test", 75.0),
@@ -153,7 +192,7 @@ mod tests {
         #[case(15.0, 90.0, true)]
         #[case(50.0, 50.0, false)]
         fn total_value(#[case] v1: f64, #[case] v2: f64, #[case] is_err: bool) {
-            let mut class = Class::new(0, "TEST101");
+            let mut class = Class::new(0, "TEST101").unwrap();
 
             let a = Assignment::new(0, "Test 0", v1).unwrap();
             let res = class.add_assignment(a);
@@ -176,7 +215,7 @@ mod tests {
         #[case((0, "Test 1", 50.0), (0, "Test 2", 50.0))] // Same ID
         #[case((0, "Test 1", 50.0), (1, "Test 1", 40.0))] // Same Name
         fn constraints(#[case] t1: (u64, &str, f64), #[case] t2: (u64, &str, f64)) {
-            let mut class = Class::new(0, "TEST101");
+            let mut class = Class::new(0, "TEST101").unwrap();
             let a = Assignment::new(t1.0, t1.1, t1.2).unwrap();
             let b = Assignment::new(t2.0, t2.1, t2.2).unwrap();
 
@@ -194,7 +233,7 @@ mod tests {
 
         #[test]
         fn valid() {
-            let mut class = Class::new(0, "TEST101");
+            let mut class = Class::new(0, "TEST101").unwrap();
             assert!(class
                 .add_assignment(Assignment::new_with_mark(0, "Test 1", 50.0, 80.0).unwrap())
                 .is_ok());
@@ -217,7 +256,7 @@ mod tests {
         #[case(50.0)]
         #[case(100.0)]
         fn ok(#[case] mark: f64) -> Result<()> {
-            let mut class = Class::new(0, "TEST101");
+            let mut class = Class::new(0, "TEST101").unwrap();
             class.add_assignment(Assignment::new(0, "Test 1", 50.0)?)?;
 
             let res = class.add_mark(0, mark);
@@ -232,7 +271,7 @@ mod tests {
         #[case(-1.0)]
         #[case(101.0)]
         fn err(#[case] mark: f64) -> Result<()> {
-            let mut class = Class::new(0, "TEST101");
+            let mut class = Class::new(0, "TEST101").unwrap();
             class.add_assignment(Assignment::new(0, "Test 1", 50.0)?)?;
 
             let res = class.add_mark(0, mark);

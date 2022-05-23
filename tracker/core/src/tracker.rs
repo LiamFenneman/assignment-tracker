@@ -3,6 +3,7 @@ use anyhow::{bail, Result};
 use log::{error, info, trace};
 use std::{collections::HashMap, fmt::Display};
 
+/// Keep track of the progress of many [classes](Class).
 #[derive(Debug, Clone)]
 pub struct Tracker {
     name: String,
@@ -11,6 +12,7 @@ pub struct Tracker {
 
 impl Tracker {
     /// Create a new [Tracker].
+    #[must_use]
     pub fn new(name: &str) -> Self {
         let t = Self {
             name: name.to_owned(),
@@ -22,15 +24,10 @@ impl Tracker {
 
     /// Add a new [class](Class) to the [tracker](Tracker).
     ///
-    /// # Constraints
-    /// - `classes` already contains `class`
+    /// # Errors
     /// - A [class](Class) in the [tracker](Tracker) already has the same ID
     /// - A [class](Class) in the [tracker](Tracker) already has the same name
     pub fn track_class(&mut self, class: Class) -> Result<()> {
-        if class.short_name().is_empty() {
-            err!("Could not add {class} -> No short name was provided.");
-        }
-
         if self.classes.iter().any(|(id, _)| *id == class.id()) {
             let id = class.id();
             err!("Could not add {class} -> ID ({id}) already exists.");
@@ -51,6 +48,10 @@ impl Tracker {
     }
 
     /// Add a new [assignment](Assignment) to the [class](Class) within this [tracker](Tracker).
+    ///
+    /// # Errors
+    /// - There is no [class](Class) within this [tracker](Tracker) with the provided `cid`
+    /// - Propagates errors from: [`Class::add_assignment()`]
     pub fn track_assignment(&mut self, cid: u64, assign: Assignment) -> Result<()> {
         let Some(class) = self.classes.get_mut(&cid) else {
             err!("Could not find the class with ID: {cid}");
@@ -82,9 +83,9 @@ mod tests {
         use super::*;
 
         #[rstest]
-        #[case(Class::new(0, "TEST123"))]
-        #[case(Class::new(1, "TEST456"))]
-        #[case(Class::new(999, "Class"))]
+        #[case(Class::new(0, "TEST123").unwrap())]
+        #[case(Class::new(1, "TEST456").unwrap())]
+        #[case(Class::new(999, "Class").unwrap())]
         fn ok(#[case] c: Class) {
             let mut t = Tracker::default();
             let r = t.track_class(c);
@@ -94,19 +95,14 @@ mod tests {
 
         #[rstest]
         #[case(
-            Class::new(0, "TEST123"),
-            Class::new(0, "TEST456"),
-            "Classes have the same ID -- should return Err"
+            Class::new(0, "TEST123").unwrap(),
+            Class::new(0, "TEST456").unwrap(),
+            "Classes have the same ID -> should return Err"
         )]
         #[case(
-            Class::new(0, "TEST123"),
-            Class::new(1, "TEST123"),
-            "Classes have the same short name -- should return Err"
-        )]
-        #[case(
-            Class::new(0, "TEST123"),
-            Class::new(1, ""),
-            "No short name was provided - should return Err"
+            Class::new(0, "TEST123").unwrap(),
+            Class::new(1, "TEST123").unwrap(),
+            "Classes have the same short name -> should return Err"
         )]
         fn err(#[case] c1: Class, #[case] c2: Class, #[case] msg: &str) {
             let mut t = Tracker::default();
@@ -125,7 +121,9 @@ mod tests {
         #[test]
         fn ok() {
             let mut tracker = Tracker::default();
-            assert!(tracker.track_class(Class::new(0, "TEST123")).is_ok());
+            assert!(tracker
+                .track_class(Class::new(0, "TEST123").unwrap())
+                .is_ok());
             let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
             let a2 = Assignment::new(1, "Test 2", 50.0).unwrap();
             assert!(tracker.track_assignment(0, a1).is_ok());
@@ -139,7 +137,9 @@ mod tests {
         #[case(1, (1, "Test 2", 10.0))]
         fn err(#[case] cid: u64, #[case] a2: (u64, &str, f64)) {
             let mut tracker = Tracker::default();
-            assert!(tracker.track_class(Class::new(0, "TEST123")).is_ok());
+            assert!(tracker
+                .track_class(Class::new(0, "TEST123").unwrap())
+                .is_ok());
             let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
             let a2 = Assignment::new(a2.0, a2.1, a2.2).unwrap();
             assert!(tracker.track_assignment(0, a1).is_ok());

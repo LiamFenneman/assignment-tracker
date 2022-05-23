@@ -1,10 +1,7 @@
-use crate::err;
+use crate::{err, MAX_NAME_LEN};
 use anyhow::{bail, Result};
 use log::{error, info, trace, warn};
 use std::fmt::Display;
-
-/// Maximum length of the name of an [assignment](Assignment) in bytes.
-pub const MAX_NAME_LEN: usize = 48;
 
 /// A single assignment.
 #[derive(Debug, Clone, PartialEq)]
@@ -17,6 +14,11 @@ pub struct Assignment {
 
 impl Assignment {
     /// Create a new [assignment](Assignment) providing an ID, name and value.
+    ///
+    /// # Errors
+    /// - `name` is empty
+    /// - `name` is longer than [`MAX_NAME_LEN`] (in bytes)
+    /// - `value` is not within the range `0.0..=100.0`
     pub fn new(id: u64, name: &str, value: f64) -> Result<Self> {
         if name.is_empty() {
             err!("An assignment name must be provied.");
@@ -42,6 +44,10 @@ impl Assignment {
     }
 
     /// Create a new [assignment](Assignment) providing an ID, name, value and mark.
+    ///
+    /// # Errors
+    /// - Propagates errors from [`Assignment::new()`]
+    /// - Propagates errors from [`Assignment::set_mark()`]
     pub fn new_with_mark(id: u64, name: &str, value: f64, mark: f64) -> Result<Self> {
         let mut a = Self::new(id, name, value)?;
         a.set_mark(mark)?;
@@ -51,7 +57,7 @@ impl Assignment {
     /// Set the mark of this [assignment](Assignment).
     ///
     /// # Errors
-    /// - `mark` outside of range `0.0..=100.0`
+    /// - `mark` not within the range `0.0..=100.0`
     pub fn set_mark(&mut self, mark: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&mark) {
             err!("Mark must be within 0.0 and 100.0 -> provided: {mark}");
@@ -63,9 +69,6 @@ impl Assignment {
     }
 
     /// Remove the mark from this [assignment](Assignment).
-    ///
-    /// # Warnings
-    /// - If used when the mark is already set to `None`.
     pub fn remove_mark(&mut self) {
         match self.mark {
             Some(_) => info!("{self} -> Set mark to None"),
@@ -75,21 +78,25 @@ impl Assignment {
     }
 
     /// Get the ID for this [assignment](Assignment).
+    #[must_use]
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// Get a reference to the name of this [assignment](Assignment).
+    #[must_use]
     pub fn name(&self) -> &String {
         &self.name
     }
 
     /// Get the mark for this [assignment](Assignment).
+    #[must_use]
     pub fn mark(&self) -> Option<f64> {
         self.mark
     }
 
     /// Get the value of this [assignment](Assignment).
+    #[must_use]
     pub fn value(&self) -> f64 {
         self.value
     }
