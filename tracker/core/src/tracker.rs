@@ -48,8 +48,14 @@ impl Tracker {
         Ok(())
     }
 
-    pub fn track_assignment(&mut self, _cid: u64, _assign: Assignment) -> Result<()> {
-        todo!()
+    /// Add a new [assignment](Assignment) to the [class](Class) within this [tracker](Tracker).
+    pub fn track_assignment(&mut self, cid: u64, assign: Assignment) -> Result<()> {
+        let Some(class) = self.classes.get_mut(&cid) else {
+            err!("Could not find the class with ID: {cid}");
+        };
+
+        class.add_assignment(assign)?;
+        Ok(())
     }
 }
 
@@ -115,6 +121,32 @@ mod tests {
     }
 
     mod track_assignment {
-        //use super::*;
+        use super::*;
+
+        #[test]
+        fn ok() {
+            let mut tracker = Tracker::default();
+            assert!(tracker.track_class(Class::new(0, "TEST123")).is_ok());
+            let a1 = Assignment::builder(0).name("Test 1").value(50.0).build();
+            let a2 = Assignment::builder(1).name("Test 2").value(50.0).build();
+            assert!(tracker.track_assignment(0, a1).is_ok());
+            assert!(tracker.track_assignment(0, a2).is_ok());
+        }
+
+        #[rstest]
+        #[case(0, (0, "Test 2", 50.0))]
+        #[case(0, (1, "Test 1", 50.0))]
+        #[case(0, (1, "Test 2", 100.0))]
+        #[case(0, (1, "Test 2", -10.0))]
+        #[case(0, (1, "Test 2", 110.0))]
+        #[case(1, (1, "Test 2", 10.0))]
+        fn err(#[case] cid: u64, #[case] a2: (u64, &str, f64)) {
+            let mut tracker = Tracker::default();
+            assert!(tracker.track_class(Class::new(0, "TEST123")).is_ok());
+            let a1 = Assignment::builder(0).name("Test 1").value(50.0).build();
+            let a2 = Assignment::builder(a2.0).name(a2.1).value(a2.2).build();
+            assert!(tracker.track_assignment(0, a1).is_ok());
+            assert!(tracker.track_assignment(cid, a2).is_err());
+        }
     }
 }
