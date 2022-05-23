@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 #![feature(let_else)]
 
 pub mod assignment;
