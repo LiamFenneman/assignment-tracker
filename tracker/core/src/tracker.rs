@@ -24,7 +24,7 @@ impl Tracker {
     /// - `classes` already contains `class`
     /// - A [class](Class) in the [tracker](Tracker) already has the same ID
     /// - A [class](Class) in the [tracker](Tracker) already has the same name
-    pub fn track_class(&mut self, class: Class) -> Result<&Class> {
+    pub fn track_class(&mut self, class: Class) -> Result<()> {
         if class.short_name().is_empty() {
             err!("Could not add {class} -> No short name was provided.");
         }
@@ -44,12 +44,11 @@ impl Tracker {
         }
 
         info!("Added {class} to {self}.");
-        let id = class.id();
-        self.classes.insert(id, class);
-        Ok(&self.classes[&id])
+        self.classes.insert(class.id(), class);
+        Ok(())
     }
 
-    pub fn track_assignment(&mut self, _cid: u64, _assign: Assignment) -> Result<&Assignment> {
+    pub fn track_assignment(&mut self, _cid: u64, _assign: Assignment) -> Result<()> {
         todo!()
     }
 }
