@@ -1,6 +1,6 @@
 use crate::{err, Assignment, Class};
 use anyhow::{bail, Result};
-use log::{error, info};
+use log::{error, info, trace};
 use std::{collections::HashMap, fmt::Display};
 
 #[derive(Debug, Clone)]
@@ -12,10 +12,12 @@ pub struct Tracker {
 impl Tracker {
     /// Create a new [Tracker].
     pub fn new(name: &str) -> Self {
-        Self {
+        let t = Self {
             name: name.to_owned(),
             classes: HashMap::new(),
-        }
+        };
+        trace!("Created tracker: {t:?}");
+        t
     }
 
     /// Add a new [class](Class) to the [tracker](Tracker).
@@ -67,10 +69,7 @@ impl Display for Tracker {
 
 impl Default for Tracker {
     fn default() -> Self {
-        Self {
-            name: "Tracker".to_owned(),
-            classes: Default::default(),
-        }
+        Self::new("Tracker")
     }
 }
 
@@ -127,8 +126,8 @@ mod tests {
         fn ok() {
             let mut tracker = Tracker::default();
             assert!(tracker.track_class(Class::new(0, "TEST123")).is_ok());
-            let a1 = Assignment::builder(0).name("Test 1").value(50.0).build();
-            let a2 = Assignment::builder(1).name("Test 2").value(50.0).build();
+            let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
+            let a2 = Assignment::new(1, "Test 2", 50.0).unwrap();
             assert!(tracker.track_assignment(0, a1).is_ok());
             assert!(tracker.track_assignment(0, a2).is_ok());
         }
@@ -137,14 +136,12 @@ mod tests {
         #[case(0, (0, "Test 2", 50.0))]
         #[case(0, (1, "Test 1", 50.0))]
         #[case(0, (1, "Test 2", 100.0))]
-        #[case(0, (1, "Test 2", -10.0))]
-        #[case(0, (1, "Test 2", 110.0))]
         #[case(1, (1, "Test 2", 10.0))]
         fn err(#[case] cid: u64, #[case] a2: (u64, &str, f64)) {
             let mut tracker = Tracker::default();
             assert!(tracker.track_class(Class::new(0, "TEST123")).is_ok());
-            let a1 = Assignment::builder(0).name("Test 1").value(50.0).build();
-            let a2 = Assignment::builder(a2.0).name(a2.1).value(a2.2).build();
+            let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
+            let a2 = Assignment::new(a2.0, a2.1, a2.2).unwrap();
             assert!(tracker.track_assignment(0, a1).is_ok());
             assert!(tracker.track_assignment(cid, a2).is_err());
         }

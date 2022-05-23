@@ -3,10 +3,7 @@ use pretty_env_logger;
 use tracker_core::*;
 
 fn assignment() -> Result<()> {
-    let mut a = Assignment::builder(0) //
-        .name("Test")
-        .value(50.0)
-        .build();
+    let mut a = Assignment::new(0, "Test", 50.0)?;
 
     a.set_mark(100.0)?;
     a.remove_mark();
@@ -18,7 +15,7 @@ fn assignment() -> Result<()> {
 
 fn class() -> Result<()> {
     let mut class = Class::new(0, "TEST101");
-    let a = Assignment::builder(0).name("Test").value(50.0).build();
+    let a = Assignment::new(0, "Test", 50.0)?;
 
     let _ = class.add_assignment(a);
     let _ = class.add_mark(0, 75.0);
@@ -34,12 +31,12 @@ fn tracker() -> Result<()> {
     tracker.track_class(Class::new(0, "TEST123"))?;
     tracker.track_class(Class::new(1, "SOME456"))?;
     tracker.track_class(Class::new(2, "OTHR789"))?;
-    tracker.track_assignment(0, Assignment::builder(0).name("Test 1").value(50.0).build())?;
-    tracker.track_assignment(0, Assignment::builder(1).name("Test 2").value(50.0).build())?;
-    tracker.track_assignment(1, Assignment::builder(2).name("Test 1").value(50.0).build())?;
-    tracker.track_assignment(1, Assignment::builder(3).name("Test 2").value(50.0).build())?;
-    tracker.track_assignment(2, Assignment::builder(4).name("Test 1").value(50.0).build())?;
-    tracker.track_assignment(2, Assignment::builder(5).name("Test 2").value(50.0).build())?;
+    tracker.track_assignment(0, Assignment::new(0, "Test 1", 50.0)?)?;
+    tracker.track_assignment(0, Assignment::new(1, "Test 2", 50.0)?)?;
+    tracker.track_assignment(1, Assignment::new(2, "Test 1", 50.0)?)?;
+    tracker.track_assignment(1, Assignment::new(3, "Test 2", 50.0)?)?;
+    tracker.track_assignment(2, Assignment::new(4, "Test 1", 50.0)?)?;
+    tracker.track_assignment(2, Assignment::new(5, "Test 2", 50.0)?)?;
     Ok(())
 }
 

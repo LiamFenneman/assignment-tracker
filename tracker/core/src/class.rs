@@ -1,6 +1,6 @@
 use crate::{err, Assignment};
 use anyhow::{bail, Result};
-use log::{error, info};
+use log::{error, info, trace};
 use std::{collections::HashMap, fmt::Display};
 
 /// Representation of a generic class or university paper.
@@ -16,12 +16,14 @@ impl Class {
     /// Create a new [Class] providing an ID and short name.
     pub fn new(id: u64, short_name: &str) -> Self {
         let short_name = short_name.to_owned();
-        Class {
+        let c = Class {
             id,
             short_name,
             assignments: HashMap::new(),
             total_value: 0.0,
-        }
+        };
+        trace!("Created class: {c:?}");
+        c
     }
 
     /// Add a new [assignment](Assignment) to the [class](Class).
@@ -137,13 +139,11 @@ mod tests {
         #[case(Some(80.0))]
         fn valid(#[case] mark: Option<f64>) {
             let mut class = Class::new(0, "TEST101");
-            let res = class.add_assignment(
-                Assignment::builder(0)
-                    .name("Test 1")
-                    .value(50.0)
-                    .mark(mark)
-                    .build(),
-            );
+            let a = match mark {
+                Some(m) => Assignment::new_with_mark(0, "Test", 75.0, m),
+                None => Assignment::new(0, "Test", 75.0),
+            };
+            let res = class.add_assignment(a.unwrap());
             assert!(res.is_ok());
             assert_eq!(1, class.assignments().len());
         }
@@ -155,11 +155,11 @@ mod tests {
         fn total_value(#[case] v1: f64, #[case] v2: f64, #[case] is_err: bool) {
             let mut class = Class::new(0, "TEST101");
 
-            let a = Assignment::builder(0).name("Test 0").value(v1).build();
+            let a = Assignment::new(0, "Test 0", v1).unwrap();
             let res = class.add_assignment(a);
             assert!(res.is_ok());
 
-            let a = Assignment::builder(1).name("Test 1").value(v2).build();
+            let a = Assignment::new(1, "Test 1", v2).unwrap();
             let res = class.add_assignment(a);
             assert_eq!(is_err, res.is_err());
 
@@ -177,8 +177,8 @@ mod tests {
         #[case((0, "Test 1", 50.0), (1, "Test 1", 40.0))] // Same Name
         fn constraints(#[case] t1: (u64, &str, f64), #[case] t2: (u64, &str, f64)) {
             let mut class = Class::new(0, "TEST101");
-            let a = Assignment::builder(t1.0).name(t1.1).value(t1.2).build();
-            let b = Assignment::builder(t2.0).name(t2.1).value(t2.2).build();
+            let a = Assignment::new(t1.0, t1.1, t1.2).unwrap();
+            let b = Assignment::new(t2.0, t2.1, t2.2).unwrap();
 
             let res = class.add_assignment(a);
             assert!(res.is_ok());
@@ -195,14 +195,12 @@ mod tests {
         #[test]
         fn valid() {
             let mut class = Class::new(0, "TEST101");
-            let _ = class.add_assignment(
-                Assignment::builder(0)
-                    .name("Test 1")
-                    .value(50.0)
-                    .mark(Some(80.0))
-                    .build(),
-            );
-            let _ = class.add_assignment(Assignment::builder(1).name("Test 2").value(50.0).build());
+            assert!(class
+                .add_assignment(Assignment::new_with_mark(0, "Test 1", 50.0, 80.0).unwrap())
+                .is_ok());
+            assert!(class
+                .add_assignment(Assignment::new_with_mark(1, "Test 2", 50.0, 80.0).unwrap())
+                .is_ok());
             assert_eq!(2, class.assignments().len());
 
             let res = class.remove_assignment(1);
@@ -220,7 +218,7 @@ mod tests {
         #[case(100.0)]
         fn ok(#[case] mark: f64) -> Result<()> {
             let mut class = Class::new(0, "TEST101");
-            class.add_assignment(Assignment::builder(0).name("Test 1").value(50.0).build())?;
+            class.add_assignment(Assignment::new(0, "Test 1", 50.0)?)?;
 
             let res = class.add_mark(0, mark);
             assert!(res.is_ok());
@@ -235,7 +233,7 @@ mod tests {
         #[case(101.0)]
         fn err(#[case] mark: f64) -> Result<()> {
             let mut class = Class::new(0, "TEST101");
-            class.add_assignment(Assignment::builder(0).name("Test 1").value(50.0).build())?;
+            class.add_assignment(Assignment::new(0, "Test 1", 50.0)?)?;
 
             let res = class.add_mark(0, mark);
             println!("{res:?}");

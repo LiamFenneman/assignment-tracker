@@ -16,14 +16,36 @@ pub struct Assignment {
 }
 
 impl Assignment {
-    /// Create a new [assignment](Assignment) using the [builder](AssignmentBuilder) pattern.
-    pub fn builder(id: u64) -> AssignmentBuilder {
-        AssignmentBuilder {
-            id,
-            name: None,
-            mark: None,
-            value: None,
+    /// Create a new [assignment](Assignment) providing an ID, name and value.
+    pub fn new(id: u64, name: &str, value: f64) -> Result<Self> {
+        if name.is_empty() {
+            err!("An assignment name must be provied.");
         }
+
+        if name.len() > MAX_NAME_LEN {
+            err!("Assignment name ({name}) is too long - must be below {MAX_NAME_LEN} bytes.");
+        }
+
+        if !(0.0..=100.0).contains(&value) {
+            err!("The value of an assignment must be within 0.0 and 100.0 -> provided: {value}");
+        }
+
+        let a = Self {
+            id,
+            name: name.to_owned(),
+            mark: None,
+            value,
+        };
+
+        trace!("Created assignment: {a:?}");
+        Ok(a)
+    }
+
+    /// Create a new [assignment](Assignment) providing an ID, name, value and mark.
+    pub fn new_with_mark(id: u64, name: &str, value: f64, mark: f64) -> Result<Self> {
+        let mut a = Self::new(id, name, value)?;
+        a.set_mark(mark)?;
+        Ok(a)
     }
 
     /// Set the mark of this [assignment](Assignment).
@@ -32,7 +54,7 @@ impl Assignment {
     /// - `mark` outside of range `0.0..=100.0`
     pub fn set_mark(&mut self, mark: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&mark) {
-            err!("Mark must be within 0.0 and 100.0 -> Given mark: {mark}");
+            err!("Mark must be within 0.0 and 100.0 -> provided: {mark}");
         }
 
         info!("{self} -> Set mark to {mark}");
@@ -86,159 +108,120 @@ impl PartialOrd for Assignment {
     }
 }
 
-pub struct AssignmentBuilder {
-    id: u64,
-    name: Option<String>,
-    mark: Option<f64>,
-    value: Option<f64>,
-}
-
-impl AssignmentBuilder {
-    /// Build an [Assignment].
-    pub fn build(&mut self) -> Assignment {
-        let a = Assignment {
-            id: self.id,
-            name: self.name.to_owned().expect("A name must be provided."),
-            mark: self.mark,
-            value: self.value.expect("A value must be provided."),
-        };
-
-        trace!("Built assignment: {a:?}");
-
-        a
-    }
-
-    /// Set the name of the [assignment](Assignment).
-    ///
-    /// # Panics
-    /// - `name` is empty
-    /// - `name` is longer than [MAX_NAME_LEN]
-    pub fn name(&mut self, name: &str) -> &mut Self {
-        if name.is_empty() {
-            panic!("Name must be provided.");
-        }
-
-        if name.len() > MAX_NAME_LEN {
-            panic!("Name must be less than {MAX_NAME_LEN} bytes.");
-        }
-
-        self.name = Some(name.to_owned());
-        self
-    }
-
-    /// Set the value of the [assignment](Assignment).
-    ///
-    /// # Panics
-    /// - `value` outside the range `0.0..=100.0`
-    pub fn value(&mut self, value: f64) -> &mut Self {
-        if !(0.0..=100.0).contains(&value) {
-            panic!("Value must be within 0.0 and 100.0");
-        }
-
-        self.value = Some(value);
-        self
-    }
-
-    /// Set the mark of the [assignment](Assignment).
-    ///
-    /// # Panics
-    /// - `mark` outside the range `0.0..=100.0`
-    pub fn mark(&mut self, mark: Option<f64>) -> &mut Self {
-        if let Some(m) = mark {
-            if !(0.0..=100.0).contains(&m) {
-                panic!("Mark must be within 0.0 and 100.0");
-            }
-        }
-
-        self.mark = mark;
-        self
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use rstest::rstest;
 
-    #[rstest]
-    #[case("Assignment 1", Some(90.0), 30.0)]
-    #[case("Assignment 2", None, 30.0)]
-    #[should_panic]
-    #[case("", None, 30.0)]
-    #[should_panic]
-    #[case("Some super long assignment name which is too long", None, 30.0)]
-    #[should_panic]
-    #[case("Test", Some(-1.0), 30.0)]
-    #[should_panic]
-    #[case("Test", Some(101.0), 30.0)]
-    #[should_panic]
-    #[case("Test", Some(90.0), -1.0)]
-    #[should_panic]
-    #[case("Test", Some(90.0), 100.1)]
-    fn build(#[case] name: &str, #[case] mark: Option<f64>, #[case] value: f64) {
-        let a = Assignment::builder(0)
-            .name(name)
-            .value(value)
-            .mark(mark)
-            .build();
+    mod new {
+        use super::*;
 
-        assert_eq!(
-            Assignment {
-                id: 0,
-                name: name.to_owned(),
-                mark,
-                value,
-            },
-            a
-        );
+        #[rstest]
+        #[case("Assignment 1", 30.0)]
+        #[case("Assignment 2", 0.0)]
+        #[case("Assignment 3", 100.0)]
+        fn ok(#[case] name: &str, #[case] value: f64) {
+            let a = Assignment::new(0, name, value);
+
+            assert!(a.is_ok());
+            assert_eq!(
+                Assignment {
+                    id: 0,
+                    name: name.to_owned(),
+                    mark: None,
+                    value,
+                },
+                a.unwrap()
+            );
+        }
+
+        #[rstest]
+        #[case("", 30.0)]
+        #[case("really long assignment name which is way too long", 30.0)]
+        #[case("Assignment 1", -1.0)]
+        #[case("Assignment 2", 101.0)]
+        fn err(#[case] name: &str, #[case] value: f64) {
+            let a = Assignment::new(0, name, value);
+            assert!(a.is_err());
+        }
+    }
+
+    mod new_with_mark {
+        use super::*;
+
+        #[rstest]
+        #[case("Assignment 1", 30.0, 80.0)]
+        #[case("Assignment 2", 0.0, 100.0)]
+        #[case("Assignment 3", 100.0, 0.0)]
+        fn ok(#[case] name: &str, #[case] value: f64, #[case] mark: f64) {
+            let a = Assignment::new_with_mark(0, name, value, mark);
+
+            assert!(a.is_ok());
+            assert_eq!(
+                Assignment {
+                    id: 0,
+                    name: name.to_owned(),
+                    mark: Some(mark),
+                    value,
+                },
+                a.unwrap()
+            );
+        }
+
+        #[rstest]
+        #[case("Assignment 1", 30.0, -1.0)]
+        #[case("Assignment 2", 0.0, 101.0)]
+        fn err(#[case] name: &str, #[case] value: f64, #[case] mark: f64) {
+            let a = Assignment::new_with_mark(0, name, value, mark);
+            assert!(a.is_err());
+        }
     }
 
     #[rstest]
     #[case("Assignment 1", Some(90.0), 30.0)]
     #[case("Assignment 2", None, 30.0)]
     fn display(#[case] name: &str, #[case] mark: Option<f64>, #[case] value: f64) {
-        let a = Assignment::builder(0)
-            .name(name)
-            .value(value)
-            .mark(mark)
-            .build();
+        let a = Assignment {
+            id: 0,
+            name: name.to_owned(),
+            mark,
+            value,
+        };
         println!("{a}");
         assert!(format!("{a}").contains(name));
     }
 
-    #[rstest]
-    #[case("Assignment 1", 90.0, 30.0)]
-    #[case("Assignment 2", 75.0, 30.0)]
-    fn set_mark_ok(#[case] name: &str, #[case] mark: f64, #[case] value: f64) {
-        let mut a = Assignment::builder(0) //
-            .name(name)
-            .value(value)
-            .build();
+    mod set_mark {
+        use super::*;
 
-        let res = a.set_mark(mark);
-        assert!(res.is_ok());
-        assert_eq!(
-            Assignment {
-                id: 0,
-                name: name.to_owned(),
-                mark: Some(mark),
-                value,
-            },
-            a
-        );
-    }
+        #[rstest]
+        #[case("Assignment 1", 90.0, 30.0)]
+        #[case("Assignment 2", 75.0, 30.0)]
+        fn ok(#[case] name: &str, #[case] mark: f64, #[case] value: f64) {
+            let mut a = Assignment::new(0, name, value).unwrap();
 
-    #[rstest]
-    #[case("Assignment 1", 190.0, 30.0)]
-    #[case("Assignment 2", -75.0, 30.0)]
-    fn set_mark_err(#[case] name: &str, #[case] mark: f64, #[case] value: f64) {
-        let mut a = Assignment::builder(0) //
-            .name(name)
-            .value(value)
-            .build();
+            let res = a.set_mark(mark);
+            assert!(res.is_ok());
+            assert_eq!(
+                Assignment {
+                    id: 0,
+                    name: name.to_owned(),
+                    mark: Some(mark),
+                    value,
+                },
+                a
+            );
+        }
 
-        let res = a.set_mark(mark);
-        assert!(res.is_err());
-        println!("{res:?}");
+        #[rstest]
+        #[case("Assignment 1", 190.0, 30.0)]
+        #[case("Assignment 2", -75.0, 30.0)]
+        fn err(#[case] name: &str, #[case] mark: f64, #[case] value: f64) {
+            let mut a = Assignment::new(0, name, value).unwrap();
+
+            let res = a.set_mark(mark);
+            assert!(res.is_err());
+            println!("{res:?}");
+        }
     }
 }
