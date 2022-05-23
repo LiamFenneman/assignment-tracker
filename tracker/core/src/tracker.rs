@@ -12,6 +12,12 @@ pub struct Tracker {
 
 impl Tracker {
     /// Create a new [Tracker].
+    ///
+    /// # Example
+    /// ```
+    /// # use tracker_core::Tracker;
+    /// let tracker = Tracker::new("My Tracker");
+    /// ```
     #[must_use]
     pub fn new(name: &str) -> Self {
         let t = Self {
@@ -27,6 +33,19 @@ impl Tracker {
     /// # Errors
     /// - A [class](Class) in the [tracker](Tracker) already has the same ID
     /// - A [class](Class) in the [tracker](Tracker) already has the same name
+    ///
+    /// # Example
+    /// ```
+    /// # use anyhow::Result;
+    /// # use tracker_core::{Tracker, Class};
+    /// # fn main() -> Result<()> {
+    /// let mut tracker = Tracker::default();
+    /// let class = Class::new(0, "CLASS 101")?;
+    ///
+    /// let r = tracker.track_class(class);
+    /// assert!(r.is_ok());
+    /// # Ok(()) }
+    /// ```
     pub fn track_class(&mut self, class: Class) -> Result<()> {
         if self.classes.iter().any(|(id, _)| *id == class.id()) {
             let id = class.id();
@@ -52,6 +71,21 @@ impl Tracker {
     /// # Errors
     /// - There is no [class](Class) within this [tracker](Tracker) with the provided `cid`
     /// - Propagates errors from: [`Class::add_assignment()`]
+    ///
+    /// # Example
+    /// ```
+    /// # use anyhow::Result;
+    /// # use tracker_core::{Assignment, Class, Tracker};
+    /// # fn main() -> Result<()> {
+    /// let mut tracker = Tracker::default();
+    /// let class = Class::new(10, "CLASS 101")?;
+    /// tracker.track_class(class)?;
+    /// let assign = Assignment::new(0, "Exam", 50.0)?;
+    ///
+    /// let r = tracker.track_assignment(10, assign);
+    /// assert!(r.is_ok());
+    /// # Ok(()) }
+    /// ```
     pub fn track_assignment(&mut self, cid: u64, assign: Assignment) -> Result<()> {
         let Some(class) = self.classes.get_mut(&cid) else {
             err!("Could not find the class with ID: {cid}");

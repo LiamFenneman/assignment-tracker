@@ -19,6 +19,13 @@ impl Assignment {
     /// - `name` is empty
     /// - `name` is longer than [`MAX_NAME_LEN`] (in bytes)
     /// - `value` is not within the range `0.0..=100.0`
+    ///
+    /// # Example
+    /// ```
+    /// # use tracker_core::Assignment;
+    /// let assign = Assignment::new(0, "Assignment 1", 25.0);
+    /// assert!(assign.is_ok());
+    /// ```
     pub fn new(id: u64, name: &str, value: f64) -> Result<Self> {
         if name.is_empty() {
             err!("An assignment name must be provied.");
@@ -48,6 +55,13 @@ impl Assignment {
     /// # Errors
     /// - Propagates errors from [`Assignment::new()`]
     /// - Propagates errors from [`Assignment::set_mark()`]
+    ///
+    /// # Example
+    /// ```
+    /// # use tracker_core::Assignment;
+    /// let assign = Assignment::new_with_mark(0, "Assignment 1", 25.0, 25.0);
+    /// assert!(assign.is_ok());
+    /// ```
     pub fn new_with_mark(id: u64, name: &str, value: f64, mark: f64) -> Result<Self> {
         let mut a = Self::new(id, name, value)?;
         a.set_mark(mark)?;
@@ -58,6 +72,21 @@ impl Assignment {
     ///
     /// # Errors
     /// - `mark` not within the range `0.0..=100.0`
+    ///
+    /// # Example
+    /// ```
+    /// # use anyhow::Result;
+    /// # use tracker_core::Assignment;
+    /// # fn main() -> Result<()> {
+    /// let mut assign = Assignment::new(0, "Assignment 1", 25.0)?;
+    /// assign.set_mark(75.0);
+    ///
+    /// assert!(assign.mark().is_some());
+    /// if let Some(mark) = assign.mark() {
+    ///     assert_eq!(75.0, mark);
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn set_mark(&mut self, mark: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&mark) {
             err!("Mark must be within 0.0 and 100.0 -> provided: {mark}");
@@ -69,6 +98,19 @@ impl Assignment {
     }
 
     /// Remove the mark from this [assignment](Assignment).
+    ///
+    /// # Example
+    /// ```
+    /// # use anyhow::Result;
+    /// # use tracker_core::Assignment;
+    /// # fn main() -> Result<()> {
+    /// let mut assign = Assignment::new_with_mark(0, "Assignment 1", 25.0, 75.0)?;
+    /// # assert_eq!(75.0, assign.mark().unwrap());
+    /// assign.remove_mark();
+    ///
+    /// assert!(assign.mark().is_none());
+    /// # Ok(()) }
+    /// ```
     pub fn remove_mark(&mut self) {
         match self.mark {
             Some(_) => info!("{self} -> Set mark to None"),

@@ -18,6 +18,13 @@ impl Class {
     /// # Errors
     /// - `short_name` is empty.
     /// - `short_name` is longer than [`MAX_NAME_LEN`] (in bytes)
+    ///
+    /// # Example
+    /// ```
+    /// # use tracker_core::Class;
+    /// let class = Class::new(0, "CLASS 101");
+    /// assert!(class.is_ok());
+    /// ```
     pub fn new(id: u64, short_name: &str) -> Result<Self> {
         if short_name.is_empty() {
             err!("A short name must be provided.");
@@ -43,6 +50,18 @@ impl Class {
     /// - Updated `total_value` is larger than `100.0`
     /// - An [assignment](Assignment) in this [class](Class) already has the same ID
     /// - An [assignment](Assignment) in this [class](Class) already has the same name
+    ///
+    /// # Example
+    /// ```
+    /// # use anyhow::Result;
+    /// # use tracker_core::{Assignment, Class};
+    /// # fn main() -> Result<()> {
+    /// let mut class = Class::new(0, "CLASS 101")?;
+    /// let assign = Assignment::new(0, "Exam", 50.0)?;
+    /// let r = class.add_assignment(assign);
+    /// assert!(r.is_ok());
+    /// # Ok(()) }
+    /// ```
     pub fn add_assignment(&mut self, assign: Assignment) -> Result<()> {
         let total = self.total_value + assign.value();
         if total > 100.0 {
@@ -73,6 +92,20 @@ impl Class {
     ///
     /// # Errors
     /// - Could not find an [assignment](Assignment) with `id`
+    ///
+    /// # Example
+    /// ```
+    /// # use anyhow::Result;
+    /// # use tracker_core::{Assignment, Class};
+    /// # fn main() -> Result<()> {
+    /// let mut class = Class::new(0, "CLASS 101")?;
+    /// let assign = Assignment::new(10, "Exam", 50.0)?;
+    /// class.add_assignment(assign)?;
+    ///
+    /// let r = class.remove_assignment(10);
+    /// assert!(r.is_ok());
+    /// # Ok(()) }
+    /// ```
     pub fn remove_assignment(&mut self, id: u64) -> Result<Assignment> {
         match self.assignments.remove(&id) {
             Some(a) => {
@@ -90,6 +123,20 @@ impl Class {
     /// # Errors
     /// - `mark` is not within range: `0.0..=100.0`
     /// - Could not find an [assignment](Assignment) with `id`
+    ///
+    /// # Example
+    /// ```
+    /// # use anyhow::Result;
+    /// # use tracker_core::{Assignment, Class};
+    /// # fn main() -> Result<()> {
+    /// let mut class = Class::new(0, "CLASS 101")?;
+    /// let assign = Assignment::new(10, "Exam", 50.0)?;
+    /// class.add_assignment(assign)?;
+    ///
+    /// let r = class.add_mark(10, 75.0);
+    /// assert!(r.is_ok());
+    /// # Ok(()) }
+    /// ```
     pub fn add_mark(&mut self, id: u64, mark: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&mark) {
             err!("The given mark ({mark}) is outside the valid range (0.0..=100.0).");
