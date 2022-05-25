@@ -100,10 +100,10 @@ impl Tracker {
     /// ```
     pub fn track(&mut self, cid: u64, assign: Assignment) -> Result<()> {
         let id = assign.id();
-        if let Some(_) = self
+        if self
             .classes
             .iter()
-            .find(|&(_, c)| c.assignments().contains_key(&id))
+            .any(|(_, c)| c.assignments().contains_key(&id))
         {
             err!("An assignment already exists with ID: {id}");
         }
@@ -137,27 +137,30 @@ impl Tracker {
     }
 
     /// Get the name of this [tracker](Tracker).
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Get the map of all classes within this [tracker](Tracker).
+    #[must_use]
     pub fn classes(&self) -> &HashMap<u64, Class> {
         &self.classes
     }
 
     /// Get an optional reference to a [class](Class) with the provided ID.
+    #[must_use]
     pub fn get_class(&self, id: u64) -> Option<&Class> {
         self.classes.get(&id)
     }
 
     /// Get an optional reference to an [assignment](Assignment) with the provided ID.
+    #[must_use]
     pub fn get_assignment(&self, id: u64) -> Option<&Assignment> {
         self.classes
             .iter()
             .find(|&(_, c)| c.assignments().contains_key(&id))
-            .map(|(_, c)| c.assignments().get(&id))
-            .flatten()
+            .and_then(|(_, c)| c.assignments().get(&id))
     }
 }
 
