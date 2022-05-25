@@ -1,5 +1,5 @@
 use crate::{err, Assignment, Class};
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use std::{collections::HashMap, fmt::Display};
 
 /// Keep track of the progress of many [classes](Class).
@@ -66,8 +66,15 @@ impl Tracker {
     }
 
     /// Remove a [class](Class) from the [tracker](Tracker) with the provided ID.
-    pub fn remove_class(&mut self, _cid: u64) -> Result<Class> {
-        todo!()
+    ///
+    /// # Errors
+    /// - No [class](Class) exists within this [tracker](Tracker) with `id`
+    pub fn remove_class(&mut self, cid: u64) -> Result<Class> {
+        self.classes.remove(&cid).ok_or_else(|| {
+            let msg = format!("Could not find class with ID: {cid}");
+            error!("{msg}");
+            anyhow!("{msg}")
+        })
     }
 
     /// Track an [assignment](Assignment) within this [tracker](Tracker).
@@ -100,8 +107,23 @@ impl Tracker {
     }
 
     /// Untrack an [assignment](Assignment).
-    pub fn untrack(&mut self, _id: u64) -> Result<()> {
-        todo!()
+    ///
+    /// # Errors
+    /// - No [assignment](Assignment) exists within this [tracker](Tracker) with `id`
+    pub fn untrack(&mut self, id: u64) -> Result<Assignment> {
+        if let Some((&cid, _)) = self
+            .classes
+            .iter()
+            .find(|&(_, c)| c.assignments().contains_key(&id))
+        {
+            return self
+                .classes
+                .get_mut(&cid)
+                .expect("CID was found from iterating over all classes, it should exist.")
+                .remove_assignment(id);
+        }
+
+        err!("Could not find an assignment with ID: {id}");
     }
 }
 
@@ -158,6 +180,31 @@ mod tests {
         }
     }
 
+    mod remove_class {
+        use super::*;
+
+        #[rstest]
+        #[case(Class::new(0, "TEST123").unwrap())]
+        #[case(Class::new(1, "TEST456").unwrap())]
+        #[case(Class::new(999, "Class").unwrap())]
+        fn ok(#[case] c: Class) {
+            let id = c.id();
+            let mut t = Tracker::default();
+            assert!(t.add_class(c).is_ok());
+            assert!(t.remove_class(id).is_ok());
+        }
+
+        #[rstest]
+        #[case(Class::new(0, "TEST123").unwrap())]
+        #[case(Class::new(1, "TEST456").unwrap())]
+        #[case(Class::new(999, "Class").unwrap())]
+        fn err(#[case] c: Class) {
+            let mut t = Tracker::default();
+            assert!(t.add_class(c).is_ok());
+            assert!(t.remove_class(123456).is_err());
+        }
+    }
+
     mod track {
         use super::*;
 
@@ -183,6 +230,31 @@ mod tests {
             let a2 = Assignment::new(a2.0, a2.1, a2.2).unwrap();
             assert!(tracker.track(0, a1).is_ok());
             assert!(tracker.track(cid, a2).is_err());
+        }
+    }
+
+    mod untrack {
+        use super::*;
+
+        #[rstest]
+        #[case(Assignment::new(0, "Test 1", 50.0).unwrap())]
+        #[case(Assignment::new(111, "Test 1", 50.0).unwrap())]
+        fn ok(#[case] a: Assignment) {
+            let id = a.id();
+            let mut tracker = Tracker::default();
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+            assert!(tracker.track(0, a).is_ok());
+            assert!(tracker.untrack(id).is_ok());
+        }
+
+        #[rstest]
+        #[case(Assignment::new(0, "Test 1", 50.0).unwrap())]
+        #[case(Assignment::new(111, "Test 1", 50.0).unwrap())]
+        fn err(#[case] a: Assignment) {
+            let mut tracker = Tracker::default();
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+            assert!(tracker.track(0, a).is_ok());
+            assert!(tracker.untrack(123456).is_err());
         }
     }
 }
