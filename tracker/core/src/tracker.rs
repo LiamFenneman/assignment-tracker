@@ -1,321 +1,332 @@
-use std::rc::Rc;
+use crate::{err, Assignment, Class};
+use anyhow::Result;
+use std::{collections::HashMap, fmt::Display};
 
-use crate::{class_code::ClassCodes, Assignment, ClassCode};
-
-/// Track assignments.
-#[derive(Debug, PartialEq, PartialOrd)]
+/// Keep track of the progress of many [classes](Class).
+#[derive(Debug, Clone)]
 pub struct Tracker {
-    list: Vec<Assignment>,
-    codes: ClassCodes,
+    name: String,
+    classes: HashMap<u64, Class>,
 }
 
-type ValidResult = Result<(), &'static str>;
-
 impl Tracker {
-    /// Create a new default tracker.
+    /// Create a new [Tracker].
     ///
     /// # Example
     /// ```
     /// # use tracker_core::Tracker;
-    /// let tracker = Tracker::new();
-    /// assert_eq!(0, tracker.get_all().len());
+    /// let tracker = Tracker::new("My Tracker");
     /// ```
-    pub fn new() -> Self {
-        let list = Vec::new();
-        let codes = ClassCodes::new();
-        Self { list, codes }
+    #[must_use]
+    pub fn new(name: &str) -> Self {
+        let t = Self {
+            name: name.to_owned(),
+            classes: HashMap::new(),
+        };
+        trace!("Created tracker: {t:?}");
+        t
     }
 
-    /// Add an [assignment](Assignment) to be tracked.
+    /// Add a new [class](Class) to the [tracker](Tracker).
+    ///
+    /// # Errors
+    /// - A [class](Class) in the [tracker](Tracker) already has the same ID
+    /// - A [class](Class) in the [tracker](Tracker) already has the same name
     ///
     /// # Example
     /// ```
-    /// # use tracker_core::{Assignment, Tracker};
-    /// let mut tracker = Tracker::new();
-    /// let assign = Assignment::new("Test", 10.0, tracker.get_code("TEST123")?)?;
-    /// tracker.track(assign)?;
-    /// assert_eq!(1, tracker.get_all().len());
-    /// # Ok::<(), &'static str>(())
+    /// # use anyhow::Result;
+    /// # use tracker_core::{Tracker, Class};
+    /// # fn main() -> Result<()> {
+    /// let mut tracker = Tracker::default();
+    /// let class = Class::new(0, "CLASS 101")?;
+    ///
+    /// let r = tracker.add_class(class);
+    /// assert!(r.is_ok());
+    /// # Ok(()) }
     /// ```
-    pub fn track(&mut self, assign: Assignment) -> ValidResult {
-        for a in self.list.iter() {
-            // check for duplicate assignments
-            if assign == *a {
-                return Err("Cannot add duplicate assignments");
-            }
+    pub fn add_class(&mut self, class: Class) -> Result<()> {
+        if self.classes.iter().any(|(id, _)| *id == class.id()) {
+            let id = class.id();
+            err!("Could not add {class} -> ID ({id}) already exists.");
         }
 
-        // ensure the total value of all assignments in the class are below 100.0
-        let total_value: f64 = self
-            .get_all_from_class(assign.class_code())
+        if self
+            .classes
             .iter()
-            .map(|a| a.value())
-            .sum();
-        if total_value + assign.value() > 100.0 {
-            return Err("Total value of assignments in the class will be more than 100.0");
+            .any(|(_, c)| c.short_name() == class.short_name())
+        {
+            let name = class.short_name();
+            err!("Could not add {class} -> Name ({name}) already exists.");
         }
 
-        self.list.push(assign);
+        info!("Added {class} to {self}.");
+        self.classes.insert(class.id(), class);
         Ok(())
     }
 
-    /// Add many [assignments](Assignment) to be tracked.
+    /// Remove a [class](Class) from the [tracker](Tracker) with the provided ID.
+    ///
+    /// # Errors
+    /// - No [class](Class) exists within this [tracker](Tracker) with `id`
+    pub fn remove_class(&mut self, cid: u64) -> Result<Class> {
+        self.classes.remove(&cid).ok_or_else(|| {
+            let msg = format!("Could not find class with ID: {cid}");
+            error!("{msg}");
+            anyhow!("{msg}")
+        })
+    }
+
+    /// Track an [assignment](Assignment) within this [tracker](Tracker).
+    ///
+    /// # Errors
+    /// - `assign.id()` is already used for another [assignment](Assignment).
+    /// - There is no [class](Class) within this [tracker](Tracker) with the provided `cid`
+    /// - Propagates errors from: [`Class::add_assignment()`]
     ///
     /// # Example
     /// ```
-    /// # use std::rc::Rc;
-    /// # use tracker_core::{Assignment, Tracker};
-    /// let mut tracker = Tracker::new();
-    /// let code = tracker.get_code("TEST123")?;
-    /// let assigns = vec![
-    ///     Assignment::new("Test 1", 10.0, Rc::clone(&code))?,
-    ///     Assignment::new("Test 2", 10.0, Rc::clone(&code))?,
-    ///     Assignment::new("Test 3", 10.0, Rc::clone(&code))?,
-    /// ];
-    /// tracker.track_many(assigns)?;
-    /// assert_eq!(3, tracker.get_all().len());
-    /// # Ok::<(), &'static str>(())
+    /// # use anyhow::Result;
+    /// # use tracker_core::{Assignment, Class, Tracker};
+    /// # fn main() -> Result<()> {
+    /// let mut tracker = Tracker::default();
+    /// let class = Class::new(10, "CLASS 101")?;
+    /// tracker.add_class(class)?;
+    /// let assign = Assignment::new(0, "Exam", 50.0)?;
+    ///
+    /// let r = tracker.track(10, assign);
+    /// assert!(r.is_ok());
+    /// # Ok(()) }
     /// ```
-    pub fn track_many(&mut self, ass: Vec<Assignment>) -> ValidResult {
-        for a in ass {
-            self.track(a)?;
+    pub fn track(&mut self, cid: u64, assign: Assignment) -> Result<()> {
+        let id = assign.id();
+        if self
+            .classes
+            .iter()
+            .any(|(_, c)| c.assignments().contains_key(&id))
+        {
+            err!("An assignment already exists with ID: {id}");
         }
 
+        let Some(class) = self.classes.get_mut(&cid) else {
+            err!("Could not find the class with ID: {cid}");
+        };
+
+        class.add_assignment(assign)?;
         Ok(())
     }
 
-    /// Untrack an [assignment](Assignment) with the given name and [class code](ClassCode).
+    /// Untrack an [assignment](Assignment).
     ///
-    /// # Example
-    /// ***Note:*** *this example contains the example from [`Tracker::track_many()`]*
-    /// ```
-    /// # use std::rc::Rc;
-    /// # use tracker_core::{Assignment, Tracker};
-    /// # let mut tracker = Tracker::new();
-    /// let code = tracker.get_code("TEST123")?;
-    /// # let assigns = vec![
-    /// #     Assignment::new("Test 1", 10.0, Rc::clone(&code))?,
-    /// #     Assignment::new("Test 2", 10.0, Rc::clone(&code))?,
-    /// #     Assignment::new("Test 3", 10.0, Rc::clone(&code))?,
-    /// # ];
-    /// # tracker.track_many(assigns)?;
-    /// # assert_eq!(3, tracker.get_all().len());
-    ///
-    /// /// Assignment exists
-    /// assert!(tracker.untrack("Test 1", Rc::clone(&code)).is_ok());
-    /// assert_eq!(2, tracker.get_all().len());
-    ///
-    /// /// Assignment doesn't exist
-    /// assert!(tracker.untrack("Something Else", Rc::clone(&code)).is_err());
-    /// # Ok::<(), &'static str>(())
-    /// ```
-    pub fn untrack(&mut self, name: &str, class: Rc<ClassCode>) -> ValidResult {
-        // filter out assignments
-        let filtered: Vec<&Assignment> = self
-            .list
+    /// # Errors
+    /// - No [assignment](Assignment) exists within this [tracker](Tracker) with `id`
+    pub fn untrack(&mut self, id: u64) -> Result<Assignment> {
+        if let Some((&cid, _)) = self
+            .classes
             .iter()
-            .filter(|a| a.name() == name && *a.class_code() == *class)
-            .collect();
-
-        let len = filtered.len();
-
-        if len == 0 {
-            return Err("Could not find any assignment");
+            .find(|&(_, c)| c.assignments().contains_key(&id))
+        {
+            return self
+                .classes
+                .get_mut(&cid)
+                .expect("CID was found from iterating over all classes, it should exist.")
+                .remove_assignment(id);
         }
 
-        if len > 1 {
-            panic!("There are assignments with the same name and class");
-        }
-
-        if let Some(i) = self.list.iter().position(|r| r == filtered[0]) {
-            self.list.remove(i);
-            return Ok(());
-        }
-
-        panic!("Could not find the index of the assignment");
+        err!("Could not find an assignment with ID: {id}");
     }
 
-    /// Get a reference to all the [assignments](Assignment) which are tracked.
-    ///
-    /// # Example
-    /// ***Note:*** *this example contains the example from [`Tracker::track_many()`]*
-    /// ```
-    /// # use std::rc::Rc;
-    /// # use tracker_core::{Assignment, Tracker};
-    /// # let mut tracker = Tracker::new();
-    /// # let code = tracker.get_code("TEST123")?;
-    /// # let assigns = vec![
-    /// #     Assignment::new("Test 1", 10.0, Rc::clone(&code))?,
-    /// #     Assignment::new("Test 2", 10.0, Rc::clone(&code))?,
-    /// #     Assignment::new("Test 3", 10.0, Rc::clone(&code))?,
-    /// # ];
-    /// # tracker.track_many(assigns.clone())?;
-    /// let all = tracker.get_all();
-    /// assert_eq!(&assigns, all);
-    /// # Ok::<(), &'static str>(())
-    /// ```
-    pub fn get_all(&self) -> &Vec<Assignment> {
-        &self.list
+    /// Get the name of this [tracker](Tracker).
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
-    /// Get a reference to all the [assignments](Assignment) which belong to a given [class](ClassCode).
-    ///
-    /// # Example
-    /// ```
-    /// # use std::rc::Rc;
-    /// # use tracker_core::{Assignment, Tracker};
-    /// let mut tracker = Tracker::new();
-    /// let code1 = tracker.get_code("TEST123")?;
-    /// let code2 = tracker.get_code("OTHR456")?;
-    /// let assigns = vec![
-    ///     /// Assignments for class TEST123
-    ///     Assignment::new("Test 1", 10.0, Rc::clone(&code1))?,
-    ///     Assignment::new("Test 2", 10.0, Rc::clone(&code1))?,
-    ///     Assignment::new("Test 3", 10.0, Rc::clone(&code1))?,
-    ///     /// Assignments for class OTHR456
-    ///     Assignment::new("Other Test 1", 10.0, Rc::clone(&code2))?,
-    ///     Assignment::new("Other Test 2", 10.0, Rc::clone(&code2))?,
-    /// ];
-    /// tracker.track_many(assigns.clone())?;
-    ///
-    /// let all_code1 = tracker.get_all_from_class(Rc::clone(&code1));
-    /// let all_code2 = tracker.get_all_from_class(Rc::clone(&code2));
-    /// assert_eq!(3, all_code1.len());
-    /// assert_eq!(2, all_code2.len());
-    ///
-    /// # Ok::<(), &'static str>(())
-    /// ```
-    pub fn get_all_from_class(&self, class: Rc<ClassCode>) -> Vec<&Assignment> {
-        self.list
+    /// Get the map of all classes within this [tracker](Tracker).
+    #[must_use]
+    pub fn classes(&self) -> &HashMap<u64, Class> {
+        &self.classes
+    }
+
+    /// Get an optional reference to a [class](Class) with the provided ID.
+    #[must_use]
+    pub fn get_class(&self, id: u64) -> Option<&Class> {
+        self.classes.get(&id)
+    }
+
+    /// Get an optional reference to an [assignment](Assignment) with the provided ID.
+    #[must_use]
+    pub fn get_assignment(&self, id: u64) -> Option<&Assignment> {
+        self.classes
             .iter()
-            .filter(|a| *a.class_code() == *class)
-            .collect()
+            .find(|&(_, c)| c.assignments().contains_key(&id))
+            .and_then(|(_, c)| c.assignments().get(&id))
     }
+}
 
-    /// Get [class code](ClassCode) from string literal.
-    ///
-    /// See [`ClassCode::new()`] for string literal format.
-    ///
-    /// # Example
-    /// ```
-    /// # use tracker_core::Tracker;
-    /// let mut tracker = Tracker::new();
-    /// assert!(tracker.get_code("TEST123").is_ok());
-    /// assert!(tracker.get_code("TEST456").is_ok());
-    /// assert!(tracker.get_code("TEST789").is_ok());
-    /// ```
-    pub fn get_code(&mut self, str: &str) -> Result<Rc<ClassCode>, &'static str> {
-        let cc = self.codes.get(str)?;
-        Ok(Rc::clone(&cc))
+impl Display for Tracker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 
 impl Default for Tracker {
     fn default() -> Self {
-        Self::new()
+        Self::new("Tracker")
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
-    #[test]
-    fn new() {
-        let tracker = Tracker::new();
-        let empty: Vec<Assignment> = Vec::new();
-        assert_eq!(empty, tracker.list);
-    }
+    mod add_class {
+        use super::*;
 
-    #[test]
-    fn track_valid() {
-        let mut tracker = Tracker::new();
-        let a =
-            Assignment::new("Assignment 1", 25.0, tracker.get_code("SOME101").unwrap()).unwrap();
-        let b = a.clone();
-        let track = tracker.track(a);
-        assert!(track.is_ok());
-        assert_eq!(vec![b], tracker.list);
-        assert_eq!(1, tracker.list.len());
-    }
-
-    #[test]
-    fn track_invalid_1() {
-        let mut tracker = Tracker::new();
-        let a =
-            Assignment::new("Assignment 1", 25.0, tracker.get_code("SOME101").unwrap()).unwrap();
-        let b = a.clone();
-        let r = tracker.track_many(vec![a, b]);
-        assert!(r.is_err())
-    }
-
-    #[test]
-    fn track_invalid_2() {
-        let mut tracker = Tracker::new();
-        let a =
-            Assignment::new("Assignment 1", 75.0, tracker.get_code("SOME101").unwrap()).unwrap();
-        let b =
-            Assignment::new("Assignment 2", 50.0, tracker.get_code("SOME101").unwrap()).unwrap();
-        let r = tracker.track_many(vec![a, b]);
-        assert!(r.is_err())
-    }
-
-    #[test]
-    fn untrack_valid() {
-        let mut tracker = gen_tracker(3);
-        assert_eq!(3, tracker.list.len());
-        let code = tracker.get_code("TEST123").unwrap();
-        let r = tracker.untrack("Assignment 2", code);
-        assert!(r.is_ok());
-        assert_eq!(2, tracker.list.len());
-    }
-
-    #[test]
-    fn untrack_invalid_1() {
-        let mut tracker = gen_tracker(3);
-        assert_eq!(3, tracker.list.len());
-        let code = tracker.get_code("TEST123").unwrap();
-        let r = tracker.untrack("Assignment", code);
-        assert!(r.is_err());
-        assert_eq!(3, tracker.list.len());
-    }
-
-    #[test]
-    fn untrack_invalid_2() {
-        let mut tracker = gen_tracker(3);
-        assert_eq!(3, tracker.list.len());
-        let code = tracker.get_code("TEST123").unwrap();
-        let r = tracker.untrack("Assignment 3", code);
-        assert!(r.is_err());
-        assert_eq!(3, tracker.list.len());
-    }
-
-    #[test]
-    fn from_class() {
-        let mut tracker = gen_tracker(3);
-        let code = tracker.get_code("OTHR456").unwrap();
-        tracker
-            .track(Assignment::new("Test 1", 50.0, Rc::clone(&code)).unwrap())
-            .unwrap();
-        tracker
-            .track(Assignment::new("Test 2", 50.0, Rc::clone(&code)).unwrap())
-            .unwrap();
-        assert_eq!(5, tracker.get_all().len());
-        let code = tracker.get_code("TEST123").unwrap();
-        assert_eq!(3, tracker.get_all_from_class(code).len());
-        let code = tracker.get_code("OTHR456").unwrap();
-        assert_eq!(2, tracker.get_all_from_class(code).len());
-    }
-
-    fn gen_tracker(size: usize) -> Tracker {
-        let mut tracker = Tracker::new();
-        let cc = tracker.get_code("TEST123").unwrap();
-        for i in 0..size {
-            let code = Rc::clone(&cc);
-            tracker
-                .track(Assignment::new(&format!("Assignment {}", i), 10.0, code).unwrap())
-                .unwrap();
+        #[rstest]
+        #[case(Class::new(0, "TEST123").unwrap())]
+        #[case(Class::new(1, "TEST456").unwrap())]
+        #[case(Class::new(999, "Class").unwrap())]
+        fn ok(#[case] c: Class) {
+            let mut t = Tracker::default();
+            let r = t.add_class(c);
+            assert!(r.is_ok());
+            assert_eq!(1, t.classes.len());
         }
-        tracker
+
+        #[rstest]
+        #[case(
+            Class::new(0, "TEST123").unwrap(),
+            Class::new(0, "TEST456").unwrap(),
+            "Classes have the same ID -> should return Err"
+        )]
+        #[case(
+            Class::new(0, "TEST123").unwrap(),
+            Class::new(1, "TEST123").unwrap(),
+            "Classes have the same short name -> should return Err"
+        )]
+        fn err(#[case] c1: Class, #[case] c2: Class, #[case] msg: &str) {
+            let mut t = Tracker::default();
+            let r1 = t.add_class(c1);
+            assert!(r1.is_ok());
+
+            let r2 = t.add_class(c2);
+            println!("{r2:?}");
+            assert!(r2.is_err(), "{msg}");
+        }
+    }
+
+    mod remove_class {
+        use super::*;
+
+        #[rstest]
+        #[case(Class::new(0, "TEST123").unwrap())]
+        #[case(Class::new(1, "TEST456").unwrap())]
+        #[case(Class::new(999, "Class").unwrap())]
+        fn ok(#[case] c: Class) {
+            let id = c.id();
+            let mut t = Tracker::default();
+            assert!(t.add_class(c).is_ok());
+            assert!(t.remove_class(id).is_ok());
+        }
+
+        #[rstest]
+        #[case(Class::new(0, "TEST123").unwrap())]
+        #[case(Class::new(1, "TEST456").unwrap())]
+        #[case(Class::new(999, "Class").unwrap())]
+        fn err(#[case] c: Class) {
+            let mut t = Tracker::default();
+            assert!(t.add_class(c).is_ok());
+            assert!(t.remove_class(123456).is_err());
+        }
+    }
+
+    mod track {
+        use super::*;
+
+        #[test]
+        fn ok() {
+            let mut tracker = Tracker::default();
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+            let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
+            let a2 = Assignment::new(1, "Test 2", 50.0).unwrap();
+            assert!(tracker.track(0, a1).is_ok());
+            assert!(tracker.track(0, a2).is_ok());
+        }
+
+        #[rstest]
+        #[case(0, (0, "Test 2", 50.0))]
+        #[case(0, (1, "Test 1", 50.0))]
+        #[case(0, (1, "Test 2", 100.0))]
+        #[case(1, (1, "Test 2", 10.0))]
+        fn err(#[case] cid: u64, #[case] a2: (u64, &str, f64)) {
+            let mut tracker = Tracker::default();
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+            let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
+            let a2 = Assignment::new(a2.0, a2.1, a2.2).unwrap();
+            assert!(tracker.track(0, a1).is_ok());
+            assert!(tracker.track(cid, a2).is_err());
+        }
+
+        #[rstest]
+        #[case((0, "Test 1", 50.0), (0, "Exam", 50.0))]
+        fn err_multi(#[case] a1: (u64, &str, f64), #[case] a2: (u64, &str, f64)) {
+            let mut tracker = Tracker::default();
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+            assert!(tracker.add_class(Class::new(1, "SOME456").unwrap()).is_ok());
+            assert!(tracker
+                .track(0, Assignment::new(a1.0, a1.1, a1.2).unwrap())
+                .is_ok());
+            assert!(tracker
+                .track(1, Assignment::new(a2.0, a2.1, a2.2).unwrap())
+                .is_err());
+        }
+    }
+
+    mod untrack {
+        use super::*;
+
+        #[rstest]
+        #[case(Assignment::new(0, "Test 1", 50.0).unwrap())]
+        #[case(Assignment::new(111, "Test 1", 50.0).unwrap())]
+        fn ok(#[case] a: Assignment) {
+            let id = a.id();
+            let mut tracker = Tracker::default();
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+            assert!(tracker.track(0, a).is_ok());
+            assert!(tracker.untrack(id).is_ok());
+        }
+
+        #[rstest]
+        #[case(Assignment::new(0, "Test 1", 50.0).unwrap())]
+        #[case(Assignment::new(111, "Test 1", 50.0).unwrap())]
+        fn err(#[case] a: Assignment) {
+            let mut tracker = Tracker::default();
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+            assert!(tracker.track(0, a).is_ok());
+            assert!(tracker.untrack(123456).is_err());
+        }
+    }
+
+    #[test]
+    fn get_assignment() {
+        let mut tracker = Tracker::default();
+        assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+        assert!(tracker.add_class(Class::new(1, "SOME456").unwrap()).is_ok());
+        let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
+        let a2 = Assignment::new(1, "Test 1", 50.0).unwrap();
+        let c1 = a1.clone();
+        let c2 = a2.clone();
+        assert!(tracker.track(0, a1).is_ok());
+        assert!(tracker.track(1, a2).is_ok());
+
+        let r = tracker.get_assignment(0);
+        assert!(r.is_some());
+        assert_eq!(c1, *r.unwrap());
+
+        let r = tracker.get_assignment(1);
+        assert!(r.is_some());
+        assert_eq!(c2, *r.unwrap());
     }
 }

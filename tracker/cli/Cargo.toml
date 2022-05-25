@@ -1,9 +1,0 @@
-[package]
-name = "tracker-cli"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-tracker_core = { path = "../core" }
-rand = "0.8.5"
-prettytable-rs = "0.8.0"
