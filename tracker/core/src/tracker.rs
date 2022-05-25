@@ -1,6 +1,5 @@
 use crate::{err, Assignment, Class};
 use anyhow::{bail, Result};
-use log::{error, info, trace};
 use std::{collections::HashMap, fmt::Display};
 
 /// Keep track of the progress of many [classes](Class).
@@ -42,11 +41,11 @@ impl Tracker {
     /// let mut tracker = Tracker::default();
     /// let class = Class::new(0, "CLASS 101")?;
     ///
-    /// let r = tracker.track_class(class);
+    /// let r = tracker.add_class(class);
     /// assert!(r.is_ok());
     /// # Ok(()) }
     /// ```
-    pub fn track_class(&mut self, class: Class) -> Result<()> {
+    pub fn add_class(&mut self, class: Class) -> Result<()> {
         if self.classes.iter().any(|(id, _)| *id == class.id()) {
             let id = class.id();
             err!("Could not add {class} -> ID ({id}) already exists.");
@@ -66,7 +65,12 @@ impl Tracker {
         Ok(())
     }
 
-    /// Add a new [assignment](Assignment) to the [class](Class) within this [tracker](Tracker).
+    /// Remove a [class](Class) from the [tracker](Tracker) with the provided ID.
+    pub fn remove_class(&mut self, _cid: u64) -> Result<Class> {
+        todo!()
+    }
+
+    /// Track an [assignment](Assignment) within this [tracker](Tracker).
     ///
     /// # Errors
     /// - There is no [class](Class) within this [tracker](Tracker) with the provided `cid`
@@ -79,20 +83,25 @@ impl Tracker {
     /// # fn main() -> Result<()> {
     /// let mut tracker = Tracker::default();
     /// let class = Class::new(10, "CLASS 101")?;
-    /// tracker.track_class(class)?;
+    /// tracker.add_class(class)?;
     /// let assign = Assignment::new(0, "Exam", 50.0)?;
     ///
-    /// let r = tracker.track_assignment(10, assign);
+    /// let r = tracker.track(10, assign);
     /// assert!(r.is_ok());
     /// # Ok(()) }
     /// ```
-    pub fn track_assignment(&mut self, cid: u64, assign: Assignment) -> Result<()> {
+    pub fn track(&mut self, cid: u64, assign: Assignment) -> Result<()> {
         let Some(class) = self.classes.get_mut(&cid) else {
             err!("Could not find the class with ID: {cid}");
         };
 
         class.add_assignment(assign)?;
         Ok(())
+    }
+
+    /// Untrack an [assignment](Assignment).
+    pub fn untrack(&mut self, _id: u64) -> Result<()> {
+        todo!()
     }
 }
 
@@ -113,7 +122,7 @@ mod tests {
     use super::*;
     use rstest::rstest;
 
-    mod track_class {
+    mod add_class {
         use super::*;
 
         #[rstest]
@@ -122,7 +131,7 @@ mod tests {
         #[case(Class::new(999, "Class").unwrap())]
         fn ok(#[case] c: Class) {
             let mut t = Tracker::default();
-            let r = t.track_class(c);
+            let r = t.add_class(c);
             assert!(r.is_ok());
             assert_eq!(1, t.classes.len());
         }
@@ -140,28 +149,26 @@ mod tests {
         )]
         fn err(#[case] c1: Class, #[case] c2: Class, #[case] msg: &str) {
             let mut t = Tracker::default();
-            let r1 = t.track_class(c1);
+            let r1 = t.add_class(c1);
             assert!(r1.is_ok());
 
-            let r2 = t.track_class(c2);
+            let r2 = t.add_class(c2);
             println!("{r2:?}");
             assert!(r2.is_err(), "{msg}");
         }
     }
 
-    mod track_assignment {
+    mod track {
         use super::*;
 
         #[test]
         fn ok() {
             let mut tracker = Tracker::default();
-            assert!(tracker
-                .track_class(Class::new(0, "TEST123").unwrap())
-                .is_ok());
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
             let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
             let a2 = Assignment::new(1, "Test 2", 50.0).unwrap();
-            assert!(tracker.track_assignment(0, a1).is_ok());
-            assert!(tracker.track_assignment(0, a2).is_ok());
+            assert!(tracker.track(0, a1).is_ok());
+            assert!(tracker.track(0, a2).is_ok());
         }
 
         #[rstest]
@@ -171,13 +178,11 @@ mod tests {
         #[case(1, (1, "Test 2", 10.0))]
         fn err(#[case] cid: u64, #[case] a2: (u64, &str, f64)) {
             let mut tracker = Tracker::default();
-            assert!(tracker
-                .track_class(Class::new(0, "TEST123").unwrap())
-                .is_ok());
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
             let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
             let a2 = Assignment::new(a2.0, a2.1, a2.2).unwrap();
-            assert!(tracker.track_assignment(0, a1).is_ok());
-            assert!(tracker.track_assignment(cid, a2).is_err());
+            assert!(tracker.track(0, a1).is_ok());
+            assert!(tracker.track(cid, a2).is_err());
         }
     }
 }

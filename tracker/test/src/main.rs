@@ -28,15 +28,15 @@ fn class() -> Result<()> {
 
 fn tracker() -> Result<()> {
     let mut tracker = Tracker::default();
-    tracker.track_class(Class::new(0, "TEST123")?)?;
-    tracker.track_class(Class::new(1, "SOME456")?)?;
-    tracker.track_class(Class::new(2, "OTHR789")?)?;
-    tracker.track_assignment(0, Assignment::new(0, "Test 1", 50.0)?)?;
-    tracker.track_assignment(0, Assignment::new(1, "Test 2", 50.0)?)?;
-    tracker.track_assignment(1, Assignment::new(2, "Test 1", 50.0)?)?;
-    tracker.track_assignment(1, Assignment::new(3, "Test 2", 50.0)?)?;
-    tracker.track_assignment(2, Assignment::new(4, "Test 1", 50.0)?)?;
-    tracker.track_assignment(2, Assignment::new(5, "Test 2", 50.0)?)?;
+    tracker.add_class(Class::new(0, "TEST123")?)?;
+    tracker.add_class(Class::new(1, "SOME456")?)?;
+    tracker.add_class(Class::new(2, "OTHR789")?)?;
+    tracker.track(0, Assignment::new(0, "Test 1", 50.0)?)?;
+    tracker.track(0, Assignment::new(1, "Test 2", 50.0)?)?;
+    tracker.track(1, Assignment::new(2, "Test 1", 50.0)?)?;
+    tracker.track(1, Assignment::new(3, "Test 2", 50.0)?)?;
+    tracker.track(2, Assignment::new(4, "Test 1", 50.0)?)?;
+    tracker.track(2, Assignment::new(5, "Test 2", 50.0)?)?;
     Ok(())
 }
 

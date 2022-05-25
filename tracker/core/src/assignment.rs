@@ -1,6 +1,5 @@
 use crate::{err, MAX_NAME_LEN};
 use anyhow::{bail, Result};
-use log::{error, info, trace, warn};
 use std::fmt::Display;
 
 /// A single assignment.

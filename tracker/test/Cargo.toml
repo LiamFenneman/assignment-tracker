@@ -1,5 +1,5 @@
 [package]
-name = "tracker_test_cli"
+name = "tracker_test"
 version = "0.1.0"
 edition = "2021"
 
