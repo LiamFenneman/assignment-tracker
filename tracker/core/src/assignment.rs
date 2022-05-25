@@ -1,5 +1,5 @@
 use crate::{err, MAX_NAME_LEN};
-use anyhow::{bail, Result};
+use anyhow::Result;
 use std::fmt::Display;
 
 /// A single assignment.

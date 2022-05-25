@@ -1,5 +1,5 @@
 use crate::{err, Assignment, Class};
-use anyhow::{anyhow, bail, Result};
+use anyhow::Result;
 use std::{collections::HashMap, fmt::Display};
 
 /// Keep track of the progress of many [classes](Class).
