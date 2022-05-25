@@ -1,8 +1,10 @@
 use crate::{err, Assignment, MAX_NAME_LEN};
-use anyhow::{bail, Result};
+use anyhow::Result;
 use std::{collections::HashMap, fmt::Display};
 
 /// Representation of a generic class or university paper.
+///
+/// Tracks the progress of many [assignments](Assignment).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Class {
     id: u64,
