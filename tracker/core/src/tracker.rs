@@ -80,6 +80,7 @@ impl Tracker {
     /// Track an [assignment](Assignment) within this [tracker](Tracker).
     ///
     /// # Errors
+    /// - `assign.id()` is already used for another [assignment](Assignment).
     /// - There is no [class](Class) within this [tracker](Tracker) with the provided `cid`
     /// - Propagates errors from: [`Class::add_assignment()`]
     ///
@@ -98,6 +99,15 @@ impl Tracker {
     /// # Ok(()) }
     /// ```
     pub fn track(&mut self, cid: u64, assign: Assignment) -> Result<()> {
+        let id = assign.id();
+        if let Some(_) = self
+            .classes
+            .iter()
+            .find(|&(_, c)| c.assignments().contains_key(&id))
+        {
+            err!("An assignment already exists with ID: {id}");
+        }
+
         let Some(class) = self.classes.get_mut(&cid) else {
             err!("Could not find the class with ID: {cid}");
         };
@@ -124,6 +134,30 @@ impl Tracker {
         }
 
         err!("Could not find an assignment with ID: {id}");
+    }
+
+    /// Get the name of this [tracker](Tracker).
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the map of all classes within this [tracker](Tracker).
+    pub fn classes(&self) -> &HashMap<u64, Class> {
+        &self.classes
+    }
+
+    /// Get an optional reference to a [class](Class) with the provided ID.
+    pub fn get_class(&self, id: u64) -> Option<&Class> {
+        self.classes.get(&id)
+    }
+
+    /// Get an optional reference to an [assignment](Assignment) with the provided ID.
+    pub fn get_assignment(&self, id: u64) -> Option<&Assignment> {
+        self.classes
+            .iter()
+            .find(|&(_, c)| c.assignments().contains_key(&id))
+            .map(|(_, c)| c.assignments().get(&id))
+            .flatten()
     }
 }
 
@@ -231,6 +265,20 @@ mod tests {
             assert!(tracker.track(0, a1).is_ok());
             assert!(tracker.track(cid, a2).is_err());
         }
+
+        #[rstest]
+        #[case((0, "Test 1", 50.0), (0, "Exam", 50.0))]
+        fn err_multi(#[case] a1: (u64, &str, f64), #[case] a2: (u64, &str, f64)) {
+            let mut tracker = Tracker::default();
+            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+            assert!(tracker.add_class(Class::new(1, "SOME456").unwrap()).is_ok());
+            assert!(tracker
+                .track(0, Assignment::new(a1.0, a1.1, a1.2).unwrap())
+                .is_ok());
+            assert!(tracker
+                .track(1, Assignment::new(a2.0, a2.1, a2.2).unwrap())
+                .is_err());
+        }
     }
 
     mod untrack {
@@ -256,5 +304,26 @@ mod tests {
             assert!(tracker.track(0, a).is_ok());
             assert!(tracker.untrack(123456).is_err());
         }
+    }
+
+    #[test]
+    fn get_assignment() {
+        let mut tracker = Tracker::default();
+        assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
+        assert!(tracker.add_class(Class::new(1, "SOME456").unwrap()).is_ok());
+        let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
+        let a2 = Assignment::new(1, "Test 1", 50.0).unwrap();
+        let c1 = a1.clone();
+        let c2 = a2.clone();
+        assert!(tracker.track(0, a1).is_ok());
+        assert!(tracker.track(1, a2).is_ok());
+
+        let r = tracker.get_assignment(0);
+        assert!(r.is_some());
+        assert_eq!(c1, *r.unwrap());
+
+        let r = tracker.get_assignment(1);
+        assert!(r.is_some());
+        assert_eq!(c2, *r.unwrap());
     }
 }
