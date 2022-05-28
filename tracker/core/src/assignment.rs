@@ -1,10 +1,10 @@
 use crate::{err, Mark};
 use anyhow::Result;
 use chrono::NaiveDateTime;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 /// Generic representation of an assignment.
-pub trait Assignmentlike: Display + PartialEq + PartialOrd {
+pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     /// The **unique** id of the [assignment](Assignmentlike).
     ///
     /// The **uniqueness** must be implemented on the **user** of an [assignment](Assignmentlike).

@@ -1,20 +1,11 @@
 use crate::{err, Assignment, Assignmentlike, Class, Classlike};
 use anyhow::Result;
-use std::fmt::{Debug, Display};
+use std::{
+    collections::BTreeMap,
+    fmt::{Debug, Display},
+};
 
-/// Keep track of many [assignments](crate::Assignmentlike) from many [classes](crate::Classlike).
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Tracker<C = Class, A = Assignment>
-where
-    C: Classlike,
-    A: Assignmentlike,
-{
-    name: String,
-    classes: Vec<C>,
-    assignments: Vec<A>,
-}
-
-impl<C, A> Tracker<C, A>
+pub trait Trackerlike<C, A>
 where
     C: Classlike,
     A: Assignmentlike,
@@ -28,61 +19,136 @@ where
     /// let tracker = Tracker::<Code>::new("Code Tracker");
     /// ```
     #[must_use]
-    pub fn new(name: &str) -> Self {
+    fn new(name: &str) -> Self;
+
+    /// Get all the classes within the [tracker](Trackerlike).
+    #[must_use]
+    fn get_classes(&self) -> &[C];
+
+    /// Get all the assignments within the [tracker](Trackerlike).
+    #[must_use]
+    fn get_assignments(&self) -> &[A];
+
+    /// Add a [class](crate::Classlike) to the [tracker](Trackerlike).
+    ///
+    /// # Errors
+    /// - `class.code()` already taken
+    fn add_class(&mut self, class: C) -> Result<()>;
+
+    /// Remove a [class](crate::Classlike) from the [tracker](Trackerlike).
+    ///
+    /// # Errors
+    /// - `code` isn't used by any [class](Classlike)
+    fn remove_class(&mut self, code: &str) -> Result<C>;
+
+    fn add_assignment(&mut self, code: &str, assign: A) -> Result<()>;
+
+    fn remove_assignment(&mut self, assign_id: u32) -> Result<A>;
+
+    /// Get the [assignment](Assignmentlike) that corresponds to the given *ID*.
+    fn get_assignment_by_id(&self, id: u32) -> Option<&A> {
+        self.get_assignments().iter().find(|a| a.id() == id)
+    }
+
+    /// Get the [class](Classlike) that corresponds to the given *code*.
+    fn get_class_by_code(&self, code: &str) -> Option<&C> {
+        self.get_classes().iter().find(|c| c.code() == code)
+    }
+}
+
+/// Keep track of many [assignments](crate::Assignmentlike) from many [classes](crate::Classlike).
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Tracker<C = Class, A = Assignment>
+where
+    C: Classlike,
+    A: Assignmentlike,
+{
+    name: String,
+    classes: Vec<C>,
+    assignments: Vec<A>,
+    map: BTreeMap<u32, String>,
+}
+
+impl<C, A> Trackerlike<C, A> for Tracker<C, A>
+where
+    C: Classlike,
+    A: Assignmentlike,
+{
+    fn new(name: &str) -> Self {
         Self {
             name: name.to_owned(),
             classes: Vec::new(),
             assignments: Vec::new(),
+            map: BTreeMap::new(),
         }
     }
 
-    /// Get all the classes within the [tracker](Tracker).
-    #[must_use]
-    pub fn get_classes(&self) -> &[C] {
+    fn get_classes(&self) -> &[C] {
         &self.classes
     }
 
-    /// Get all the assignments within the [tracker](Tracker).
-    #[must_use]
-    pub fn get_assignments(&self) -> &[A] {
+    fn get_assignments(&self) -> &[A] {
         &self.assignments
     }
 
-    /// Add a [class](crate::Classlike) to the [tracker](Tracker).
-    ///
-    /// # Errors
-    /// - `class.code()` already taken
-    pub fn add_class(&mut self, class: C) -> Result<()> {
+    fn add_class(&mut self, class: C) -> Result<()> {
         if self.get_classes().iter().any(|c| c.code() == class.code()) {
             let code = class.code();
             err!("{self} -> Class code ({code}) already exists");
         }
 
         trace!("{self} -> Add class -> {class:?}");
+
+        // add the class to the vec
         self.classes.push(class);
         Ok(())
     }
 
-    /// Remove a [class](crate::Classlike) from the [tracker](Tracker).
-    ///
-    /// # Errors
-    /// - `code` isn't used by any [class](Classlike)
-    pub fn remove_class(&mut self, code: &str) -> Result<C> {
+    fn remove_class(&mut self, code: &str) -> Result<C> {
         let Some(index) = self.get_classes().iter().position(|c| c.code() == code) else {
             err!("{self} -> Could not find a class with code: {code}");
         };
 
+        // TODO: remove all entries in the map for class code
+
+        // remove the class from the vec
         let c = self.classes.remove(index);
+
         trace!("{self} -> Remove class -> {c:?}");
         Ok(c)
     }
 
-    pub fn add_assignment(&mut self, _code: &str, _assign: A) -> Result<()> {
-        todo!()
+    fn add_assignment(&mut self, code: &str, assign: A) -> Result<()> {
+        if self.get_assignments().iter().any(|a| a.id() == assign.id()) {
+            let id = assign.id();
+            err!("{self} -> Assignment ID ({id}) already exists.");
+        }
+
+        // TODO: ensure unique assignment name for class
+
+        // insert entry (assign id -> class code) into the map
+        self.map.insert(assign.id(), code.to_owned());
+
+        trace!("{self} -> Add assignment -> {assign:?}");
+
+        // add the assignment to the vec
+        self.assignments.push(assign);
+        Ok(())
     }
 
-    pub fn remove_assignment(&mut self, _assign_id: u32) -> Result<A> {
-        todo!()
+    fn remove_assignment(&mut self, assign_id: u32) -> Result<A> {
+        let Some(index) = self.get_assignments().iter().position(|a| a.id() == assign_id) else {
+            err!("{self} -> Could not find a assignment with ID: {assign_id}");
+        };
+
+        // remove the entry in map
+        self.map.remove(&assign_id);
+
+        // remove the class from the vec
+        let a = self.assignments.remove(index);
+
+        trace!("{self} -> Remove assignment -> {a:?}");
+        Ok(a)
     }
 }
 
@@ -106,6 +172,7 @@ where
             name: String::from("Default Tracker"),
             classes: Vec::new(),
             assignments: Vec::new(),
+            map: BTreeMap::new(),
         }
     }
 }

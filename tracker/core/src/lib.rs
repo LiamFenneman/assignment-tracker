@@ -21,6 +21,7 @@ pub use assignment::Assignmentlike;
 
 mod tracker;
 pub use tracker::Tracker;
+pub use tracker::Trackerlike;
 
 #[macro_export]
 macro_rules! err {
