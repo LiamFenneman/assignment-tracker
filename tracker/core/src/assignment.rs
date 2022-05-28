@@ -74,25 +74,167 @@ impl Assignmentlike for Assignment {
             err!("Provided mark is invalid: {mark:?}");
         }
 
+        trace!("{self} -> Set mark -> {mark:?}");
         self.mark = Some(mark);
         Ok(())
     }
 
     fn remove_mark(&mut self) {
+        trace!("{self} -> Set mark -> None");
         self.mark = None;
     }
 
     fn set_due_date(&mut self, due_date: NaiveDateTime) {
+        trace!("{self} -> Set due date -> {due_date:?}");
         self.due_date = Some(due_date);
     }
 
     fn remove_due_date(&mut self) {
+        trace!("{self} -> Set due date -> None");
         self.due_date = None;
+    }
+}
+
+impl Default for Assignment {
+    fn default() -> Self {
+        Assignment::new(0, "Default Assignment", 0.0)
+    }
+}
+
+impl Assignment {
+    /// Create a new [assignment](Assignment) with no mark or due date.
+    pub fn new(id: u32, name: &str, value: f64) -> Self {
+        Self {
+            id,
+            name: name.to_owned(),
+            value,
+            mark: None,
+            due_date: None,
+        }
+    }
+
+    /// Create a new [assignment](Assignment) using the builder pattern.
+    pub fn builder(id: u32, name: &str, value: f64) -> Builder {
+        Builder {
+            id,
+            name: name.to_owned(),
+            value,
+            mark: None,
+            due_date: None,
+        }
+    }
+}
+
+/// Builder for [Assignment].
+pub struct Builder {
+    id: u32,
+    name: String,
+    value: f64,
+    mark: Option<Mark>,
+    due_date: Option<NaiveDateTime>,
+}
+
+impl Builder {
+    /// Get the built [assignment](Assignment).
+    pub fn build(&mut self) -> Assignment {
+        let a = Assignment {
+            id: self.id,
+            name: self.name.clone(),
+            value: self.value,
+            mark: self.mark,
+            due_date: self.due_date,
+        };
+        trace!("Assignment built -> {a:?}");
+        a
+    }
+
+    /// Add the mark to the [assignment](Assignment).
+    pub fn mark(&mut self, mark: Mark) -> &mut Self {
+        self.mark = Some(mark);
+        self
+    }
+
+    /// Add the due date to the [assignment](Assignment).
+    pub fn due_date(&mut self, due_date: NaiveDateTime) -> &mut Self {
+        self.due_date = Some(due_date);
+        self
     }
 }
 
 impl Display for Assignment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} ({})", self.name(), self.id())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(None, None)]
+    #[case(Some(Mark::Percent(75.0)), None)]
+    #[case(None, Some(NaiveDate::from_ymd(2022, 05, 01).and_hms(12, 25, 30)))]
+    #[case(Some(Mark::Percent(50.0)), Some(NaiveDate::from_ymd(2022, 12, 25).and_hms(14, 45, 10)))]
+    fn builder(#[case] mark: Option<Mark>, #[case] due_date: Option<NaiveDateTime>) {
+        let func = |id: u32| {
+            let name = format!("Assignment {id}");
+            let mut ass = Assignment::builder(id, &name, 0.0);
+            if mark.is_none() && due_date.is_none() {
+                let ass = ass.build();
+                assert_eq!(
+                    Assignment {
+                        id,
+                        name,
+                        value: 0.0,
+                        mark: None,
+                        due_date: None
+                    },
+                    ass
+                );
+            } else if mark.is_none() {
+                let ass = ass.due_date(due_date.unwrap().clone()).build();
+                assert_eq!(
+                    Assignment {
+                        id,
+                        name,
+                        value: 0.0,
+                        mark: None,
+                        due_date
+                    },
+                    ass
+                );
+            } else if due_date.is_none() {
+                let ass = ass.mark(mark.unwrap()).build();
+                assert_eq!(
+                    Assignment {
+                        id,
+                        name,
+                        value: 0.0,
+                        mark,
+                        due_date: None
+                    },
+                    ass
+                );
+            } else {
+                let ass = ass.mark(mark.unwrap()).due_date(due_date.unwrap()).build();
+                assert_eq!(
+                    Assignment {
+                        id,
+                        name,
+                        value: 0.0,
+                        mark,
+                        due_date
+                    },
+                    ass
+                );
+            }
+        };
+
+        for i in 0..10 {
+            func(i);
+        }
     }
 }
