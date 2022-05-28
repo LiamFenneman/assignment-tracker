@@ -113,7 +113,9 @@ impl Mark {
         }
 
         if !(0.0..=100.0).contains(&pct) {
-            return Err(InvalidMarkError::PercentOutOfRange(pct));
+            let e = InvalidMarkError::PercentOutOfRange(pct);
+            error!("{e}");
+            return Err(e);
         }
 
         Ok(Self::Percent(pct))
@@ -125,7 +127,9 @@ impl Mark {
     /// - `c` is **not** within range `A..=Z`
     pub fn letter(c: char) -> MarkResult {
         if !('A'..='Z').contains(&c) {
-            return Err(InvalidMarkError::LetterOutOfRange(c));
+            let e = InvalidMarkError::LetterOutOfRange(c);
+            error!("{e}");
+            return Err(e);
         }
 
         Ok(Self::Letter(c))
@@ -137,7 +141,9 @@ impl Mark {
     /// - `a` is greater than `b`
     pub fn out_of(a: u32, b: u32) -> MarkResult {
         if a > b {
-            return Err(InvalidMarkError::OutOfTupleEquality(a, b));
+            let e = InvalidMarkError::OutOfTupleEquality(a, b);
+            error!("{e}");
+            return Err(e);
         }
 
         Ok(Self::OutOf(a, b))

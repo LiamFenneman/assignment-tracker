@@ -826,6 +826,7 @@ name = "tracker_test"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "pretty_env_logger",
  "tracker_core",
 ]
