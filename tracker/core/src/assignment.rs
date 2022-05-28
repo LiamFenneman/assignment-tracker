@@ -103,6 +103,15 @@ impl Default for Assignment {
 
 impl Assignment {
     /// Create a new [assignment](Assignment) with no mark or due date.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tracker_core::*;
+    /// let assign = Assignment::new(10, "Test 1", 35.0);
+    /// let assign = Assignment::new(25, "Assignment 1", 15.0);
+    /// let assign = Assignment::new(102, "Exam", 55.0);
+    /// ```
+    #[must_use]
     pub fn new(id: u32, name: &str, value: f64) -> Self {
         Self {
             id,
@@ -114,6 +123,28 @@ impl Assignment {
     }
 
     /// Create a new [assignment](Assignment) using the builder pattern.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tracker_core::*;
+    /// # use chrono::NaiveDate;
+    /// let assign = Assignment::builder(10, "Test 1", 35.0).build();
+    /// assert_eq!(Assignment::new(10, "Test 1", 35.0), assign);
+    ///
+    /// let assign = Assignment::builder(5, "Exam", 35.0)
+    ///     .mark(Mark::Percent(75.0))
+    ///     .build();
+    ///
+    /// let assign = Assignment::builder(5, "Exam", 35.0)
+    ///     .due_date(NaiveDate::from_ymd(2022, 05, 01).and_hms(12, 33, 15))
+    ///     .build();
+    ///
+    /// let assign = Assignment::builder(5, "Exam", 35.0)
+    ///     .due_date(NaiveDate::from_ymd(2022, 05, 01).and_hms(12, 33, 15))
+    ///     .mark(Mark::Letter('A'))
+    ///     .build();
+    /// ```
+    #[must_use]
     pub fn builder(id: u32, name: &str, value: f64) -> Builder {
         Builder {
             id,
@@ -172,6 +203,41 @@ mod tests {
     use super::*;
     use chrono::NaiveDate;
     use rstest::rstest;
+
+    mod set_mark {
+        use super::*;
+
+        #[rstest]
+        #[case(Mark::Percent(0.0))]
+        #[case(Mark::Percent(55.0))]
+        #[case(Mark::Percent(100.0))]
+        #[case(Mark::Letter('A'))]
+        #[case(Mark::Letter('E'))]
+        #[case(Mark::Letter('Z'))]
+        #[case(Mark::OutOf(0, 0))]
+        #[case(Mark::OutOf(0, 90))]
+        #[case(Mark::OutOf(15, 25))]
+        fn ok(#[case] mark: Mark) {
+            let mut a = Assignment::default();
+            let r = a.set_mark(mark);
+            assert!(r.is_ok(), "{mark:?}");
+        }
+
+        #[rstest]
+        #[case(Mark::Percent(-10.0))]
+        #[case(Mark::Percent(155.0))]
+        #[case(Mark::Letter('a'))]
+        #[case(Mark::Letter('#'))]
+        #[case(Mark::Letter(' '))]
+        #[case(Mark::Letter('1'))]
+        #[case(Mark::OutOf(1, 0))]
+        #[case(Mark::OutOf(15, 12))]
+        fn err(#[case] mark: Mark) {
+            let mut a = Assignment::default();
+            let r = a.set_mark(mark);
+            assert!(r.is_err(), "{mark:?}");
+        }
+    }
 
     #[rstest]
     #[case(None, None)]
