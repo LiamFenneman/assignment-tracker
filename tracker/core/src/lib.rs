@@ -19,6 +19,9 @@ mod assignment;
 pub use assignment::Assignment;
 pub use assignment::Assignmentlike;
 
+mod tracker;
+pub use tracker::Tracker;
+
 #[macro_export]
 macro_rules! err {
     ($msg:expr) => {

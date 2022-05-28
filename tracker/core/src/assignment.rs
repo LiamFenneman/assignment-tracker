@@ -4,7 +4,7 @@ use chrono::NaiveDateTime;
 use std::fmt::Display;
 
 /// Generic representation of an assignment.
-pub trait Assignmentlike: Display + PartialEq {
+pub trait Assignmentlike: Display + PartialEq + PartialOrd {
     /// The **unique** id of the [assignment](Assignmentlike).
     ///
     /// The **uniqueness** must be implemented on the **user** of an [assignment](Assignmentlike).

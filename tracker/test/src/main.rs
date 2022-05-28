@@ -17,7 +17,7 @@ fn assignment() -> Result<()> {
     a.set_mark(Mark::percent(75.0)?)?;
     a.set_mark(Mark::letter('A')?)?;
     a.set_mark(Mark::out_of(22, 25)?)?;
-    a.set_due_date(NaiveDate::from_ymd(2022, 05, 01).and_hms(23, 59, 0));
+    a.set_due_date(NaiveDate::from_ymd(2022, 5, 1).and_hms(23, 59, 0));
     Ok(())
 }
 
@@ -39,6 +39,17 @@ fn assignment_builder() -> Result<()> {
     Ok(())
 }
 
+fn tracker() -> Result<()> {
+    let mut t = Tracker::<Code>::new("Code Tracker");
+    t.add_class(Code::default())?;
+    t.remove_class("DEFAULT")?;
+
+    let mut t = Tracker::<Class>::new("Class Tracker");
+    t.add_class(Class::default())?;
+    t.remove_class("DEFAULT")?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "trace");
     std::env::set_var("RUST_BACKTRACE", "1");
@@ -52,6 +63,9 @@ fn main() -> Result<()> {
 
     println!("Assignment Builder Test:");
     assignment_builder()?;
+
+    println!("Tracker Test:");
+    let _ = tracker();
 
     Ok(())
 }

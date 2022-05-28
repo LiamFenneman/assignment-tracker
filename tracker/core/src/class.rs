@@ -1,7 +1,6 @@
-use std::fmt::Display;
-
+use std::fmt::{Debug, Display};
 /// Generic representation a university/school class/paper/course.
-pub trait Classlike: Display + PartialEq + Eq + PartialOrd + Ord {
+pub trait Classlike: Display + Debug + PartialEq + Eq + PartialOrd + Ord {
     /// A **unique** *code* for a [class](Classlike).
     ///
     /// **Uniqueness** is enforced by the **user** of the [class](Classlike).
@@ -18,7 +17,7 @@ pub trait Classlike: Display + PartialEq + Eq + PartialOrd + Ord {
     fn new(code: &str) -> Self;
 
     /// Create a new [class](Classlike) where the *code* and *name* are the different.
-    fn new_with_name(code: &str, name: &str) -> Self;
+    fn with_name(code: &str, name: &str) -> Self;
 }
 
 /// Implementation of [Classlike] that **only** contains a *code*.
@@ -42,7 +41,7 @@ impl Classlike for Code {
         }
     }
 
-    fn new_with_name(code: &str, _name: &str) -> Self {
+    fn with_name(code: &str, _name: &str) -> Self {
         Self {
             code: code.to_owned(),
         }
@@ -52,6 +51,14 @@ impl Classlike for Code {
 impl Display for Code {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.code())
+    }
+}
+
+impl Default for Code {
+    fn default() -> Self {
+        Self {
+            code: String::from("DEFAULT"),
+        }
     }
 }
 
@@ -78,7 +85,7 @@ impl Classlike for Class {
         }
     }
 
-    fn new_with_name(code: &str, name: &str) -> Self {
+    fn with_name(code: &str, name: &str) -> Self {
         Self {
             code: code.to_owned(),
             name: name.to_owned(),
@@ -89,5 +96,14 @@ impl Classlike for Class {
 impl Display for Class {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} ({})", self.name(), self.code())
+    }
+}
+
+impl Default for Class {
+    fn default() -> Self {
+        Self {
+            code: String::from("DEFAULT"),
+            name: String::from("Default Class"),
+        }
     }
 }
