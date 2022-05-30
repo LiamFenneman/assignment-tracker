@@ -42,11 +42,12 @@ fn assignment_builder() -> Result<()> {
 fn tracker() -> Result<()> {
     let mut t = Tracker::<Code>::new("Code Tracker");
     t.add_class(Code::default())?;
-    t.remove_class("DEFAULT")?;
-
-    let mut t = Tracker::<Class>::new("Class Tracker");
-    t.add_class(Class::default())?;
-    t.remove_class("DEFAULT")?;
+    let code = "DEFAULT";
+    for i in 0..10 {
+        t.add_assignment(code, Assignment::new(i, &format!("Assignment {i}"), 10.0))?;
+    }
+    t.remove_assignment(0)?;
+    t.remove_class(code)?;
     Ok(())
 }
 

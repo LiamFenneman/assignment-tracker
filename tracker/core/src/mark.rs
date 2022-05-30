@@ -176,7 +176,7 @@ pub enum InvalidMarkError {
 
 #[cfg(test)]
 mod tests {
-    use super::Mark::{self, *};
+    use super::Mark::{self, Letter, OutOf, Percent};
     use rstest::rstest;
 
     #[rstest]
