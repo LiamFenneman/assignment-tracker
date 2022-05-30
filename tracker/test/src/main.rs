@@ -57,8 +57,6 @@ fn tracker() -> Result<()> {
         t.add_assignment(CLASS_B, gen(i + N, i, 100.0 / N as f64))?;
     }
 
-    // TODO: UPDATE CLASSES
-
     // EDIT ASSIGNMENTS
     t.get_assignment_by_id_mut(1)
         .unwrap()
@@ -67,8 +65,6 @@ fn tracker() -> Result<()> {
     t.get_assignment_by_id_mut(2)
         .unwrap()
         .set_due_date(NaiveDate::from_ymd(2022, 5, 1).and_hms(23, 59, 59));
-
-    // TODO: UPDATE ASSIGNMENTS
 
     // REMOVE ASSIGNMENTS
     t.remove_assignment(1)?;

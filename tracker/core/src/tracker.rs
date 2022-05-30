@@ -1,7 +1,7 @@
 use crate::{err, Assignment, Assignmentlike, Class, Classlike};
 use anyhow::Result;
 use std::{
-    collections::BTreeMap,
+    collections::HashMap,
     fmt::{Debug, Display},
 };
 
@@ -87,7 +87,7 @@ where
 }
 
 /// Keep track of many [assignments](crate::Assignmentlike) from many [classes](crate::Classlike).
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug)]
 pub struct Tracker<C = Class, A = Assignment>
 where
     C: Classlike,
@@ -96,7 +96,7 @@ where
     name: String,
     classes: Vec<C>,
     assignments: Vec<A>,
-    map: BTreeMap<u32, String>,
+    map: HashMap<u32, String>,
 }
 
 impl<C, A> Trackerlike<C, A> for Tracker<C, A>
@@ -109,7 +109,7 @@ where
             name: name.to_owned(),
             classes: Vec::new(),
             assignments: Vec::new(),
-            map: BTreeMap::new(),
+            map: HashMap::new(),
         }
     }
 
@@ -233,12 +233,7 @@ where
     A: Assignmentlike,
 {
     fn default() -> Self {
-        Self {
-            name: String::from("Default Tracker"),
-            classes: Vec::new(),
-            assignments: Vec::new(),
-            map: BTreeMap::new(),
-        }
+        Self::new("Default Tracker")
     }
 }
 
