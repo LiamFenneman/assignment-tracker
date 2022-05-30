@@ -242,61 +242,32 @@ mod tests {
     #[rstest]
     #[case(None, None)]
     #[case(Some(Mark::Percent(75.0)), None)]
-    #[case(None, Some(NaiveDate::from_ymd(2022, 05, 01).and_hms(12, 25, 30)))]
+    #[case(None, Some(NaiveDate::from_ymd(2022, 5, 1).and_hms(12, 25, 30)))]
     #[case(Some(Mark::Percent(50.0)), Some(NaiveDate::from_ymd(2022, 12, 25).and_hms(14, 45, 10)))]
     fn builder(#[case] mark: Option<Mark>, #[case] due_date: Option<NaiveDateTime>) {
         let func = |id: u32| {
             let name = format!("Assignment {id}");
             let mut ass = Assignment::builder(id, &name, 0.0);
-            if mark.is_none() && due_date.is_none() {
-                let ass = ass.build();
-                assert_eq!(
-                    Assignment {
-                        id,
-                        name,
-                        value: 0.0,
-                        mark: None,
-                        due_date: None
-                    },
-                    ass
-                );
-            } else if mark.is_none() {
-                let ass = ass.due_date(due_date.unwrap().clone()).build();
-                assert_eq!(
-                    Assignment {
-                        id,
-                        name,
-                        value: 0.0,
-                        mark: None,
-                        due_date
-                    },
-                    ass
-                );
-            } else if due_date.is_none() {
-                let ass = ass.mark(mark.unwrap()).build();
-                assert_eq!(
-                    Assignment {
-                        id,
-                        name,
-                        value: 0.0,
-                        mark,
-                        due_date: None
-                    },
-                    ass
-                );
-            } else {
-                let ass = ass.mark(mark.unwrap()).due_date(due_date.unwrap()).build();
-                assert_eq!(
-                    Assignment {
-                        id,
-                        name,
-                        value: 0.0,
-                        mark,
-                        due_date
-                    },
-                    ass
-                );
+            let mut ass = &mut ass;
+
+            if let Some(m) = mark {
+                ass = ass.mark(m);
             }
+
+            if let Some(d) = due_date {
+                ass = ass.due_date(d);
+            }
+
+            assert_eq!(
+                Assignment {
+                    id,
+                    name,
+                    value: 0.0,
+                    mark,
+                    due_date
+                },
+                ass.build()
+            );
         };
 
         for i in 0..10 {
