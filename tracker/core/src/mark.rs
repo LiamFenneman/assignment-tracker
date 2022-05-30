@@ -78,22 +78,25 @@ pub enum Mark {
 type MarkResult = Result<Mark, InvalidMarkError>;
 
 impl Mark {
-    /// Is the mark is valid according to the constaints below:
+    /// Check if the mark is valid.
+    ///
+    /// # Errors
     /// - [`Mark::Percent`]: value is within range `0.0..=100.0`
     /// - [`Mark::Letter`]: [`char`] must be within range `A..=Z`
     /// - [`Mark::OutOf`]: *X* is less than or equal to *Y*
-    #[must_use]
-    pub fn is_valid(&self) -> bool {
+    pub fn check_valid(&self) -> Result<(), InvalidMarkError> {
         match self {
-            Self::Percent(f) => {
-                if (0.0..=0.1).contains(f) {
-                    warn!("Percent range is 0.0 to 100.0 -> Provided value ({f}) might not be correct.");
+            Self::Percent(pct) if !(0.0..=100.0).contains(pct) => {
+                if (0.0..=0.1).contains(pct) {
+                    warn!("Percent range is 0.0 to 100.0 -> Provided value ({pct}) might not be correct.");
                 }
-
-                (0.0..=100.0).contains(f)
+                Err(InvalidMarkError::PercentOutOfRange(*pct))
             }
-            Self::Letter(c) => ('A'..='Z').contains(c),
-            Self::OutOf(a, b) => a <= b,
+            Self::Letter(c) if !('A'..='Z').contains(c) => {
+                Err(InvalidMarkError::LetterOutOfRange(*c))
+            }
+            Self::OutOf(a, b) if a > b => Err(InvalidMarkError::OutOfTupleEquality(*a, *b)),
+            _ => Ok(()),
         }
     }
 
@@ -190,7 +193,7 @@ mod tests {
     #[case(OutOf(90, 100))]
     #[case(OutOf(1, 1))]
     fn valid(#[case] mark: Mark) {
-        assert!(mark.is_valid());
+        assert!(mark.check_valid().is_ok());
     }
 
     #[rstest]
@@ -203,6 +206,6 @@ mod tests {
     #[case(OutOf(1, 0))]
     #[case(OutOf(10, 5))]
     fn invalid(#[case] mark: Mark) {
-        assert!(!mark.is_valid());
+        assert!(mark.check_valid().is_err());
     }
 }

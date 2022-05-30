@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::fmt::{Debug, Display};
+use thiserror::Error;
 
 /// Generic representation a university/school class/paper/course.
 pub trait Classlike: Display + Debug + PartialEq + PartialOrd {
@@ -83,7 +84,10 @@ impl Classlike for Code {
 
     fn set_total_value(&mut self, value: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&value) {
-            bail!("{self} -> Total value ({value}) must be within 0.0..=100.0");
+            bail!(InvalidClassError::TotalValueOutOfRange(
+                self.name().to_owned(),
+                value
+            ));
         }
 
         trace!("{self} -> Total value -> {value}");
@@ -139,7 +143,10 @@ impl Classlike for Class {
 
     fn set_total_value(&mut self, value: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&value) {
-            bail!("{self} -> Total value ({value}) must be within 0.0..=100.0");
+            bail!(InvalidClassError::TotalValueOutOfRange(
+                self.name().to_owned(),
+                value
+            ));
         }
 
         trace!("{self} -> Total value -> {value}");
@@ -158,4 +165,12 @@ impl Default for Class {
     fn default() -> Self {
         Self::with_name("DEFAULT", "Default Class")
     }
+}
+
+/// The [class](Classlike) is invalid.
+#[derive(Error, Debug)]
+pub enum InvalidClassError {
+    /// The total value of all assignments must be within `0.0..=100.0`
+    #[error("{0} -> Total value ({1}) must be within 0.0..=100.0")]
+    TotalValueOutOfRange(String, f64),
 }

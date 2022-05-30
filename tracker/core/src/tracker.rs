@@ -1,9 +1,13 @@
 use crate::prelude::*;
+use crate::tracker::InvalidTrackerError::{
+    AssignmentIdNone, AssignmentIdTaken, AssignmentNameNotUnique, ClassCodeNone, ClassCodeTaken,
+};
 use anyhow::Result;
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
 };
+use thiserror::Error;
 
 /// Definition of methods required to be able to be a tracker.
 pub trait Trackerlike<C, A>
@@ -11,6 +15,12 @@ where
     C: Classlike,
     A: Assignmentlike,
 {
+    /// Get the name of the tracker.
+    ///
+    /// This *should* be unique, but is **not** enforced.
+    #[must_use]
+    fn name(&self) -> &str;
+
     /// Create a new [tracker][Tracker] with a given name.
     ///
     /// # Examples
@@ -104,6 +114,10 @@ where
     C: Classlike,
     A: Assignmentlike,
 {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
     fn new(name: &str) -> Self {
         Self {
             name: name.to_owned(),
@@ -131,8 +145,10 @@ where
 
     fn add_class(&mut self, class: C) -> Result<()> {
         if self.get_classes().iter().any(|c| c.code() == class.code()) {
-            let code = class.code();
-            bail!("{self} -> Class code ({code}) already exists");
+            bail!(ClassCodeTaken(
+                self.name().to_owned(),
+                class.code().to_owned()
+            ));
         }
 
         trace!("{self} -> Add class -> {class:?}");
@@ -144,7 +160,10 @@ where
 
     fn remove_class(&mut self, code: &str) -> Result<C> {
         let Some(index) = self.get_classes().iter().position(|c| c.code() == code) else {
-            bail!("{self} -> Could not find a class with code: {code}");
+            bail!( ClassCodeTaken(
+                self.name().to_owned(),
+                code.to_owned()
+            ));
         };
 
         let ids = self
@@ -165,8 +184,7 @@ where
 
     fn add_assignment(&mut self, code: &str, assign: A) -> Result<()> {
         if self.get_assignments().iter().any(|a| a.id() == assign.id()) {
-            let id = assign.id();
-            bail!("{self} -> Assignment ID ({id}) already exists.");
+            bail!(AssignmentIdTaken(self.name().to_owned(), assign.id()));
         }
 
         // ensure unique assignment name within a class
@@ -177,14 +195,17 @@ where
             .map(Assignmentlike::id)
             .any(|id| self.map.get(&id).is_some_and(|&s| s == code))
         {
-            let name = assign.name();
-            bail!("{self} -> Assignment name ({name}) already taken for {code}.");
+            bail!(AssignmentNameNotUnique(
+                self.name().to_owned(),
+                assign.name().to_owned(),
+                code.to_owned()
+            ));
         }
 
         // ensure total value within class is less than 100
         match self.get_class_by_code_mut(code) {
             None => {
-                bail!("{self} -> Class ({code}) doesn't exist.");
+                bail!(ClassCodeNone(self.name().to_owned(), code.to_owned()));
             }
             Some(class) => {
                 class.add_total_value(assign.value())?;
@@ -203,7 +224,7 @@ where
 
     fn remove_assignment(&mut self, assign_id: u32) -> Result<A> {
         let Some(index) = self.get_assignments().iter().position(|a| a.id() == assign_id) else {
-            bail!("{self} -> Could not find a assignment with ID: {assign_id}");
+            bail!( AssignmentIdNone(self.name().to_owned(), assign_id));
         };
 
         // remove the entry in map
@@ -235,6 +256,26 @@ where
     fn default() -> Self {
         Self::new("Default Tracker")
     }
+}
+
+/// The [tracker](Trackerlike) is invalid.
+#[derive(Error, Debug)]
+pub enum InvalidTrackerError {
+    /// Class code is already taken by another class.
+    #[error("{0} -> Class code ({1}) already exists")]
+    ClassCodeTaken(String, String),
+    /// Class code doesn't exist.
+    #[error("{0} -> Could not find a class with code: {1}")]
+    ClassCodeNone(String, String),
+    /// Assignment ID is already taken by another assignment.
+    #[error("{0} -> Assignment ID ({1}) already exists")]
+    AssignmentIdTaken(String, u32),
+    /// Assignment ID doesn't exist.
+    #[error("{0} -> Could not find a assignment with ID: {1}")]
+    AssignmentIdNone(String, u32),
+    /// Assignment name is already taken by another assignment within the class.
+    #[error("{0} -> Assignment name ({1}) already taken for {2}")]
+    AssignmentNameNotUnique(String, String, String),
 }
 
 #[cfg(test)]

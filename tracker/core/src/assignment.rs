@@ -70,10 +70,7 @@ impl Assignmentlike for Assignment {
     }
 
     fn set_mark(&mut self, mark: Mark) -> Result<()> {
-        if !mark.is_valid() {
-            bail!("Provided mark is invalid: {mark:?}");
-        }
-
+        mark.check_valid()?;
         trace!("{self} -> Set mark -> {mark:?}");
         self.mark = Some(mark);
         Ok(())
