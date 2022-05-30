@@ -1,179 +1,281 @@
-use crate::{err, Assignment, Class};
+use crate::prelude::*;
+use crate::tracker::InvalidTrackerError::{
+    AssignmentIdNone, AssignmentIdTaken, AssignmentNameNotUnique, ClassCodeNone, ClassCodeTaken,
+};
 use anyhow::Result;
-use std::{collections::HashMap, fmt::Display};
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display},
+};
+use thiserror::Error;
 
-/// Keep track of the progress of many [classes](Class).
-#[derive(Debug, Clone)]
-pub struct Tracker {
-    name: String,
-    classes: HashMap<u64, Class>,
+/// Definition of methods required to be able to be a tracker.
+pub trait Trackerlike<C, A>
+where
+    C: Classlike,
+    A: Assignmentlike,
+{
+    /// Get the name of the tracker.
+    ///
+    /// This *should* be unique, but is **not** enforced.
+    #[must_use]
+    fn name(&self) -> &str;
+
+    /// Create a new [tracker][Tracker] with a given name.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tracker_core::prelude::*;
+    /// let tracker = Tracker::<Class>::new("Class Tracker");
+    /// let tracker = Tracker::<Code>::new("Code Tracker");
+    /// ```
+    #[must_use]
+    fn new(name: &str) -> Self;
+
+    /// Get all the classes within the [tracker](Trackerlike).
+    #[must_use]
+    fn get_classes(&self) -> &[C];
+
+    /// Get all the classes within the [tracker](Trackerlike).
+    #[must_use]
+    fn get_classes_mut(&mut self) -> &mut [C];
+
+    /// Get all the assignments within the [tracker](Trackerlike).
+    #[must_use]
+    fn get_assignments(&self) -> &[A];
+
+    /// Get all the assignments within the [tracker](Trackerlike).
+    #[must_use]
+    fn get_assignments_mut(&mut self) -> &mut [A];
+
+    /// Add a [class](Classlike) to the [tracker](Trackerlike).
+    ///
+    /// # Errors
+    /// - `class.code()` already taken
+    fn add_class(&mut self, class: C) -> Result<()>;
+
+    /// Remove a [class](Classlike) from the [tracker](Trackerlike).
+    ///
+    /// # Errors
+    /// - `code` isn't used by any [class](Classlike)
+    fn remove_class(&mut self, code: &str) -> Result<C>;
+
+    /// Add an [assignment](Assignmentlike) to the [tracker](Trackerlike).
+    ///
+    /// # Errors
+    /// - `assign.id()` already taken by another assignment
+    /// - `assign.name()` already taken within the class
+    /// - No class with `code` exists
+    /// - Total value of assignments within `code` greater than `100.0`
+    fn add_assignment(&mut self, code: &str, assign: A) -> Result<()>;
+
+    /// Remove an [assignment](Assignmentlike) from the [tracker](Trackerlike).
+    ///
+    /// # Errors
+    /// - No assignment with id: `assign_id` exists within the tracker
+    fn remove_assignment(&mut self, assign_id: u32) -> Result<A>;
+
+    /// Get the [assignment](Assignmentlike) that corresponds to the given *ID*.
+    fn get_assignment_by_id(&self, id: u32) -> Option<&A> {
+        self.get_assignments().iter().find(|a| a.id() == id)
+    }
+
+    /// Get the [assignment](Assignmentlike) that corresponds to the given *ID*.
+    fn get_assignment_by_id_mut(&mut self, id: u32) -> Option<&mut A> {
+        self.get_assignments_mut().iter_mut().find(|a| a.id() == id)
+    }
+
+    /// Get the [class](Classlike) that corresponds to the given *code*.
+    fn get_class_by_code(&self, code: &str) -> Option<&C> {
+        self.get_classes().iter().find(|c| c.code() == code)
+    }
+
+    /// Get mutable reference to the [class](Classlike) that corresponds to the given *code*.
+    fn get_class_by_code_mut(&mut self, code: &str) -> Option<&mut C> {
+        self.get_classes_mut().iter_mut().find(|c| c.code() == code)
+    }
 }
 
-impl Tracker {
-    /// Create a new [Tracker].
-    ///
-    /// # Example
-    /// ```
-    /// # use tracker_core::Tracker;
-    /// let tracker = Tracker::new("My Tracker");
-    /// ```
-    #[must_use]
-    pub fn new(name: &str) -> Self {
-        let t = Self {
-            name: name.to_owned(),
-            classes: HashMap::new(),
-        };
-        trace!("Created tracker: {t:?}");
-        t
-    }
+/// Keep track of many [assignments](Assignmentlike) from many [classes](Classlike).
+#[derive(Debug)]
+pub struct Tracker<C = Class, A = Assignment>
+where
+    C: Classlike,
+    A: Assignmentlike,
+{
+    name: String,
+    classes: Vec<C>,
+    assignments: Vec<A>,
+    map: HashMap<u32, String>,
+}
 
-    /// Add a new [class](Class) to the [tracker](Tracker).
-    ///
-    /// # Errors
-    /// - A [class](Class) in the [tracker](Tracker) already has the same ID
-    /// - A [class](Class) in the [tracker](Tracker) already has the same name
-    ///
-    /// # Example
-    /// ```
-    /// # use anyhow::Result;
-    /// # use tracker_core::{Tracker, Class};
-    /// # fn main() -> Result<()> {
-    /// let mut tracker = Tracker::default();
-    /// let class = Class::new(0, "CLASS 101")?;
-    ///
-    /// let r = tracker.add_class(class);
-    /// assert!(r.is_ok());
-    /// # Ok(()) }
-    /// ```
-    pub fn add_class(&mut self, class: Class) -> Result<()> {
-        if self.classes.iter().any(|(id, _)| *id == class.id()) {
-            let id = class.id();
-            err!("Could not add {class} -> ID ({id}) already exists.");
-        }
-
-        if self
-            .classes
-            .iter()
-            .any(|(_, c)| c.short_name() == class.short_name())
-        {
-            let name = class.short_name();
-            err!("Could not add {class} -> Name ({name}) already exists.");
-        }
-
-        info!("Added {class} to {self}.");
-        self.classes.insert(class.id(), class);
-        Ok(())
-    }
-
-    /// Remove a [class](Class) from the [tracker](Tracker) with the provided ID.
-    ///
-    /// # Errors
-    /// - No [class](Class) exists within this [tracker](Tracker) with `id`
-    pub fn remove_class(&mut self, cid: u64) -> Result<Class> {
-        self.classes.remove(&cid).ok_or_else(|| {
-            let msg = format!("Could not find class with ID: {cid}");
-            error!("{msg}");
-            anyhow!("{msg}")
-        })
-    }
-
-    /// Track an [assignment](Assignment) within this [tracker](Tracker).
-    ///
-    /// # Errors
-    /// - `assign.id()` is already used for another [assignment](Assignment).
-    /// - There is no [class](Class) within this [tracker](Tracker) with the provided `cid`
-    /// - Propagates errors from: [`Class::add_assignment()`]
-    ///
-    /// # Example
-    /// ```
-    /// # use anyhow::Result;
-    /// # use tracker_core::{Assignment, Class, Tracker};
-    /// # fn main() -> Result<()> {
-    /// let mut tracker = Tracker::default();
-    /// let class = Class::new(10, "CLASS 101")?;
-    /// tracker.add_class(class)?;
-    /// let assign = Assignment::new(0, "Exam", 50.0)?;
-    ///
-    /// let r = tracker.track(10, assign);
-    /// assert!(r.is_ok());
-    /// # Ok(()) }
-    /// ```
-    pub fn track(&mut self, cid: u64, assign: Assignment) -> Result<()> {
-        let id = assign.id();
-        if self
-            .classes
-            .iter()
-            .any(|(_, c)| c.assignments().contains_key(&id))
-        {
-            err!("An assignment already exists with ID: {id}");
-        }
-
-        let Some(class) = self.classes.get_mut(&cid) else {
-            err!("Could not find the class with ID: {cid}");
-        };
-
-        class.add_assignment(assign)?;
-        Ok(())
-    }
-
-    /// Untrack an [assignment](Assignment).
-    ///
-    /// # Errors
-    /// - No [assignment](Assignment) exists within this [tracker](Tracker) with `id`
-    pub fn untrack(&mut self, id: u64) -> Result<Assignment> {
-        if let Some((&cid, _)) = self
-            .classes
-            .iter()
-            .find(|&(_, c)| c.assignments().contains_key(&id))
-        {
-            return self
-                .classes
-                .get_mut(&cid)
-                .expect("CID was found from iterating over all classes, it should exist.")
-                .remove_assignment(id);
-        }
-
-        err!("Could not find an assignment with ID: {id}");
-    }
-
-    /// Get the name of this [tracker](Tracker).
-    #[must_use]
-    pub fn name(&self) -> &str {
+impl<C, A> Trackerlike<C, A> for Tracker<C, A>
+where
+    C: Classlike,
+    A: Assignmentlike,
+{
+    fn name(&self) -> &str {
         &self.name
     }
 
-    /// Get the map of all classes within this [tracker](Tracker).
-    #[must_use]
-    pub fn classes(&self) -> &HashMap<u64, Class> {
+    fn new(name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            classes: Vec::new(),
+            assignments: Vec::new(),
+            map: HashMap::new(),
+        }
+    }
+
+    fn get_classes(&self) -> &[C] {
         &self.classes
     }
 
-    /// Get an optional reference to a [class](Class) with the provided ID.
-    #[must_use]
-    pub fn get_class(&self, id: u64) -> Option<&Class> {
-        self.classes.get(&id)
+    fn get_classes_mut(&mut self) -> &mut [C] {
+        &mut self.classes
     }
 
-    /// Get an optional reference to an [assignment](Assignment) with the provided ID.
-    #[must_use]
-    pub fn get_assignment(&self, id: u64) -> Option<&Assignment> {
-        self.classes
+    fn get_assignments(&self) -> &[A] {
+        &self.assignments
+    }
+
+    fn get_assignments_mut(&mut self) -> &mut [A] {
+        &mut self.assignments
+    }
+
+    fn add_class(&mut self, class: C) -> Result<()> {
+        if self.get_classes().iter().any(|c| c.code() == class.code()) {
+            bail!(ClassCodeTaken(
+                self.name().to_owned(),
+                class.code().to_owned()
+            ));
+        }
+
+        trace!("{self} -> Add class -> {class:?}");
+
+        // add the class to the vec
+        self.classes.push(class);
+        Ok(())
+    }
+
+    fn remove_class(&mut self, code: &str) -> Result<C> {
+        let Some(index) = self.get_classes().iter().position(|c| c.code() == code) else {
+            bail!( ClassCodeTaken(
+                self.name().to_owned(),
+                code.to_owned()
+            ));
+        };
+
+        let ids = self
+            .map
             .iter()
-            .find(|&(_, c)| c.assignments().contains_key(&id))
-            .and_then(|(_, c)| c.assignments().get(&id))
+            .filter(|&(_, c)| c == code)
+            .map(|(&id, _)| id)
+            .collect::<Vec<u32>>();
+
+        ids.iter().for_each(|id| drop(self.map.remove(id)));
+
+        // remove the class from the vec
+        let c = self.classes.remove(index);
+
+        trace!("{self} -> Remove class -> {c:?}");
+        Ok(c)
+    }
+
+    fn add_assignment(&mut self, code: &str, assign: A) -> Result<()> {
+        if self.get_assignments().iter().any(|a| a.id() == assign.id()) {
+            bail!(AssignmentIdTaken(self.name().to_owned(), assign.id()));
+        }
+
+        // ensure unique assignment name within a class
+        if self
+            .assignments
+            .iter()
+            .filter(|&a| a.name() == assign.name())
+            .map(Assignmentlike::id)
+            .any(|id| self.map.get(&id).is_some_and(|&s| s == code))
+        {
+            bail!(AssignmentNameNotUnique(
+                self.name().to_owned(),
+                assign.name().to_owned(),
+                code.to_owned()
+            ));
+        }
+
+        // ensure total value within class is less than 100
+        match self.get_class_by_code_mut(code) {
+            None => {
+                bail!(ClassCodeNone(self.name().to_owned(), code.to_owned()));
+            }
+            Some(class) => {
+                class.add_total_value(assign.value())?;
+            }
+        };
+
+        // insert entry (assign id -> class code) into the map
+        self.map.insert(assign.id(), code.to_owned());
+
+        trace!("{self} -> Add assignment -> {assign:?}");
+
+        // add the assignment to the vec
+        self.assignments.push(assign);
+        Ok(())
+    }
+
+    fn remove_assignment(&mut self, assign_id: u32) -> Result<A> {
+        let Some(index) = self.get_assignments().iter().position(|a| a.id() == assign_id) else {
+            bail!( AssignmentIdNone(self.name().to_owned(), assign_id));
+        };
+
+        // remove the entry in map
+        self.map.remove(&assign_id);
+
+        // remove the class from the vec
+        let a = self.assignments.remove(index);
+
+        trace!("{self} -> Remove assignment -> {a:?}");
+        Ok(a)
     }
 }
 
-impl Display for Tracker {
+impl<C, A> Display for Tracker<C, A>
+where
+    C: Classlike,
+    A: Assignmentlike,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name)
     }
 }
 
-impl Default for Tracker {
+impl<C, A> Default for Tracker<C, A>
+where
+    C: Classlike,
+    A: Assignmentlike,
+{
     fn default() -> Self {
-        Self::new("Tracker")
+        Self::new("Default Tracker")
     }
+}
+
+/// The [tracker](Trackerlike) is invalid.
+#[derive(Error, Debug)]
+pub enum InvalidTrackerError {
+    /// Class code is already taken by another class.
+    #[error("{0} -> Class code ({1}) already exists")]
+    ClassCodeTaken(String, String),
+    /// Class code doesn't exist.
+    #[error("{0} -> Could not find a class with code: {1}")]
+    ClassCodeNone(String, String),
+    /// Assignment ID is already taken by another assignment.
+    #[error("{0} -> Assignment ID ({1}) already exists")]
+    AssignmentIdTaken(String, u32),
+    /// Assignment ID doesn't exist.
+    #[error("{0} -> Could not find a assignment with ID: {1}")]
+    AssignmentIdNone(String, u32),
+    /// Assignment name is already taken by another assignment within the class.
+    #[error("{0} -> Assignment name ({1}) already taken for {2}")]
+    AssignmentNameNotUnique(String, String, String),
 }
 
 #[cfg(test)]
@@ -181,152 +283,141 @@ mod tests {
     use super::*;
     use rstest::rstest;
 
-    mod add_class {
-        use super::*;
+    #[rstest]
+    #[case("TEST123")]
+    #[case("OTHER456")]
+    #[case("ANOTHER")]
+    #[case("MyClassCode")]
+    #[case("Test123")]
+    fn add_class(#[case] s: &str) {
+        let mut t = Tracker::<Code>::default();
+        assert!(t.add_class(Code::new(s)).is_ok());
 
-        #[rstest]
-        #[case(Class::new(0, "TEST123").unwrap())]
-        #[case(Class::new(1, "TEST456").unwrap())]
-        #[case(Class::new(999, "Class").unwrap())]
-        fn ok(#[case] c: Class) {
-            let mut t = Tracker::default();
-            let r = t.add_class(c);
-            assert!(r.is_ok());
-            assert_eq!(1, t.classes.len());
-        }
-
-        #[rstest]
-        #[case(
-            Class::new(0, "TEST123").unwrap(),
-            Class::new(0, "TEST456").unwrap(),
-            "Classes have the same ID -> should return Err"
-        )]
-        #[case(
-            Class::new(0, "TEST123").unwrap(),
-            Class::new(1, "TEST123").unwrap(),
-            "Classes have the same short name -> should return Err"
-        )]
-        fn err(#[case] c1: Class, #[case] c2: Class, #[case] msg: &str) {
-            let mut t = Tracker::default();
-            let r1 = t.add_class(c1);
-            assert!(r1.is_ok());
-
-            let r2 = t.add_class(c2);
-            println!("{r2:?}");
-            assert!(r2.is_err(), "{msg}");
-        }
+        // double add
+        assert!(t.add_class(Code::new(s)).is_err());
     }
 
-    mod remove_class {
-        use super::*;
+    #[rstest]
+    #[case("TEST123")]
+    #[case("OTHER456")]
+    #[case("ANOTHER")]
+    #[case("MyClassCode")]
+    #[case("Test123")]
+    fn remove_class(#[case] s: &str) {
+        let mut t = Tracker::<Code>::default();
+        assert!(t.add_class(Code::new(s)).is_ok());
+        assert!(t.remove_class(s).is_ok());
 
-        #[rstest]
-        #[case(Class::new(0, "TEST123").unwrap())]
-        #[case(Class::new(1, "TEST456").unwrap())]
-        #[case(Class::new(999, "Class").unwrap())]
-        fn ok(#[case] c: Class) {
-            let id = c.id();
-            let mut t = Tracker::default();
-            assert!(t.add_class(c).is_ok());
-            assert!(t.remove_class(id).is_ok());
-        }
-
-        #[rstest]
-        #[case(Class::new(0, "TEST123").unwrap())]
-        #[case(Class::new(1, "TEST456").unwrap())]
-        #[case(Class::new(999, "Class").unwrap())]
-        fn err(#[case] c: Class) {
-            let mut t = Tracker::default();
-            assert!(t.add_class(c).is_ok());
-            assert!(t.remove_class(123456).is_err());
-        }
+        // double remove
+        assert!(t.remove_class(s).is_err());
     }
 
-    mod track {
+    mod add_assignment {
         use super::*;
 
-        #[test]
-        fn ok() {
-            let mut tracker = Tracker::default();
-            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
-            let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
-            let a2 = Assignment::new(1, "Test 2", 50.0).unwrap();
-            assert!(tracker.track(0, a1).is_ok());
-            assert!(tracker.track(0, a2).is_ok());
-        }
-
         #[rstest]
-        #[case(0, (0, "Test 2", 50.0))]
-        #[case(0, (1, "Test 1", 50.0))]
-        #[case(0, (1, "Test 2", 100.0))]
-        #[case(1, (1, "Test 2", 10.0))]
-        fn err(#[case] cid: u64, #[case] a2: (u64, &str, f64)) {
-            let mut tracker = Tracker::default();
-            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
-            let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
-            let a2 = Assignment::new(a2.0, a2.1, a2.2).unwrap();
-            assert!(tracker.track(0, a1).is_ok());
-            assert!(tracker.track(cid, a2).is_err());
-        }
-
-        #[rstest]
-        #[case((0, "Test 1", 50.0), (0, "Exam", 50.0))]
-        fn err_multi(#[case] a1: (u64, &str, f64), #[case] a2: (u64, &str, f64)) {
-            let mut tracker = Tracker::default();
-            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
-            assert!(tracker.add_class(Class::new(1, "SOME456").unwrap()).is_ok());
-            assert!(tracker
-                .track(0, Assignment::new(a1.0, a1.1, a1.2).unwrap())
+        #[case("Test 1")]
+        #[case("Assignment 4")]
+        #[case("Exam")]
+        #[case("MY ASSESSMENT")]
+        #[case("ASSESSMENT")]
+        fn same_id(#[case] s: &str) {
+            let mut t = Tracker::<Code>::default();
+            assert!(t.add_class(Code::new("TEST123")).is_ok());
+            assert!(t
+                .add_assignment("TEST123", Assignment::new(1, s, 15.0))
                 .is_ok());
-            assert!(tracker
-                .track(1, Assignment::new(a2.0, a2.1, a2.2).unwrap())
+
+            // one entry in the map
+            assert_eq!(1, t.map.len());
+
+            // double add
+            assert!(t
+                .add_assignment("TEST123", Assignment::new(1, s, 25.0))
                 .is_err());
         }
-    }
-
-    mod untrack {
-        use super::*;
 
         #[rstest]
-        #[case(Assignment::new(0, "Test 1", 50.0).unwrap())]
-        #[case(Assignment::new(111, "Test 1", 50.0).unwrap())]
-        fn ok(#[case] a: Assignment) {
-            let id = a.id();
-            let mut tracker = Tracker::default();
-            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
-            assert!(tracker.track(0, a).is_ok());
-            assert!(tracker.untrack(id).is_ok());
+        #[case("Test 1")]
+        #[case("Assignment 4")]
+        #[case("Exam")]
+        fn same_name(#[case] name: &str) {
+            let mut t = Tracker::<Code>::default();
+            assert!(t.add_class(Code::default()).is_ok());
+            let code = "DEFAULT";
+            assert!(t
+                .add_assignment(code, Assignment::new(0, name, 15.0))
+                .is_ok());
+            assert!(t
+                .add_assignment(code, Assignment::new(1, name, 25.0))
+                .is_err());
         }
 
         #[rstest]
-        #[case(Assignment::new(0, "Test 1", 50.0).unwrap())]
-        #[case(Assignment::new(111, "Test 1", 50.0).unwrap())]
-        fn err(#[case] a: Assignment) {
-            let mut tracker = Tracker::default();
-            assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
-            assert!(tracker.track(0, a).is_ok());
-            assert!(tracker.untrack(123456).is_err());
+        #[case("Test 1")]
+        #[case("Assignment 4")]
+        #[case("Exam")]
+        fn no_class(#[case] name: &str) {
+            let mut t = Tracker::<Code>::default();
+            assert!(t
+                .add_assignment("Class", Assignment::new(0, name, 15.0))
+                .is_err());
+        }
+
+        mod class_total_value {
+            use super::*;
+
+            #[rstest]
+            #[case(25.0, 75.0)]
+            #[case(50.0, 50.0)]
+            #[case(75.0, 25.0)]
+            #[case(99.9, 0.1)]
+            fn ok(#[case] a1: f64, #[case] a2: f64) {
+                let mut t = Tracker::<Code>::default();
+                assert!(t.add_class(Code::default()).is_ok());
+                let code = "DEFAULT";
+                assert!(t
+                    .add_assignment(code, Assignment::new(0, "Test 1", a1))
+                    .is_ok());
+                assert!(t
+                    .add_assignment(code, Assignment::new(1, "Test 2", a2))
+                    .is_ok());
+            }
+
+            #[rstest]
+            #[case(25.0, 100.0)]
+            #[case(50.0, 55.0)]
+            #[case(75.0, 30.0)]
+            #[case(100.0, 0.1)]
+            fn err(#[case] a1: f64, #[case] a2: f64) {
+                let mut t = Tracker::<Code>::default();
+                assert!(t.add_class(Code::default()).is_ok());
+                let code = "DEFAULT";
+                assert!(t
+                    .add_assignment(code, Assignment::new(0, "Test 1", a1))
+                    .is_ok());
+                assert!(t
+                    .add_assignment(code, Assignment::new(1, "Test 2", a2))
+                    .is_err());
+            }
         }
     }
 
-    #[test]
-    fn get_assignment() {
-        let mut tracker = Tracker::default();
-        assert!(tracker.add_class(Class::new(0, "TEST123").unwrap()).is_ok());
-        assert!(tracker.add_class(Class::new(1, "SOME456").unwrap()).is_ok());
-        let a1 = Assignment::new(0, "Test 1", 50.0).unwrap();
-        let a2 = Assignment::new(1, "Test 1", 50.0).unwrap();
-        let c1 = a1.clone();
-        let c2 = a2.clone();
-        assert!(tracker.track(0, a1).is_ok());
-        assert!(tracker.track(1, a2).is_ok());
+    #[rstest]
+    #[case("Test 1")]
+    #[case("Assignment 4")]
+    #[case("Exam")]
+    #[case("MY ASSESSMENT")]
+    #[case("ASSESSMENT")]
+    fn remove_assignment(#[case] s: &str) {
+        let mut t = Tracker::<Code>::default();
+        assert!(t.add_class(Code::new("TEST123")).is_ok());
+        assert!(t
+            .add_assignment("TEST123", Assignment::new(1, s, 15.0))
+            .is_ok());
+        assert!(t.remove_assignment(1).is_ok());
 
-        let r = tracker.get_assignment(0);
-        assert!(r.is_some());
-        assert_eq!(c1, *r.unwrap());
-
-        let r = tracker.get_assignment(1);
-        assert!(r.is_some());
-        assert_eq!(c2, *r.unwrap());
+        // double add
+        assert!(t.remove_assignment(1).is_err());
     }
 }

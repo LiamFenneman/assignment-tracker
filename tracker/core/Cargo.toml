@@ -1,11 +1,13 @@
 [package]
 name = "tracker_core"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0"
-log = "0.4"
+anyhow = "^1.0"
+log = "^0.4"
+chrono = "^0.4"
+thiserror = "^1.0"
 
 [dev-dependencies]
 rstest = "0.13"
