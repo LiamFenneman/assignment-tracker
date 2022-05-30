@@ -25,7 +25,7 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     /// Set the mark of the [assignment](Assignmentlike) to a new value.
     ///
     /// # Errors
-    /// - `mark` is invalid. See [`Mark::is_valid()`]
+    /// - `mark` is invalid. See [`Mark::check_valid()`]
     fn set_mark(&mut self, mark: Mark) -> Result<()>;
 
     /// Set the mark to `None`.
