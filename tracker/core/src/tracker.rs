@@ -26,6 +26,10 @@ where
     #[must_use]
     fn get_classes(&self) -> &[C];
 
+    /// Get all the classes within the [tracker](Trackerlike).
+    #[must_use]
+    fn get_classes_mut(&mut self) -> &mut [C];
+
     /// Get all the assignments within the [tracker](Trackerlike).
     #[must_use]
     fn get_assignments(&self) -> &[A];
@@ -47,6 +51,8 @@ where
     /// # Errors
     /// - `assign.id()` already taken by another assignment
     /// - `assign.name()` already taken within the class
+    /// - No class with `code` exists
+    /// - Total value of assignments within `code` greater than `100.0`
     fn add_assignment(&mut self, code: &str, assign: A) -> Result<()>;
 
     /// Remove an [assignment](crate::Assignmentlike) from the [tracker](Trackerlike).
@@ -63,6 +69,11 @@ where
     /// Get the [class](Classlike) that corresponds to the given *code*.
     fn get_class_by_code(&self, code: &str) -> Option<&C> {
         self.get_classes().iter().find(|c| c.code() == code)
+    }
+
+    /// Get mutable reference to the [class](Classlike) that corresponds to the given *code*.
+    fn get_class_by_code_mut(&mut self, code: &str) -> Option<&mut C> {
+        self.get_classes_mut().iter_mut().find(|c| c.code() == code)
     }
 }
 
@@ -95,6 +106,10 @@ where
 
     fn get_classes(&self) -> &[C] {
         &self.classes
+    }
+
+    fn get_classes_mut(&mut self) -> &mut [C] {
+        &mut self.classes
     }
 
     fn get_assignments(&self) -> &[A] {
@@ -152,6 +167,16 @@ where
             let name = assign.name();
             err!("{self} -> Assignment name ({name}) already taken for {code}.");
         }
+
+        // ensure total value within class is less than 100
+        match self.get_class_by_code_mut(code) {
+            None => {
+                err!("{self} -> Class ({code}) doesn't exist.");
+            }
+            Some(class) => {
+                class.add_total_value(assign.value())?;
+            }
+        };
 
         // insert entry (assign id -> class code) into the map
         self.map.insert(assign.id(), code.to_owned());
@@ -277,6 +302,17 @@ mod tests {
                 .is_ok());
             assert!(t
                 .add_assignment(code, Assignment::new(1, name, 25.0))
+                .is_err());
+        }
+
+        #[rstest]
+        #[case("Test 1")]
+        #[case("Assignment 4")]
+        #[case("Exam")]
+        fn no_class(#[case] name: &str) {
+            let mut t = Tracker::<Code>::default();
+            assert!(t
+                .add_assignment("Class", Assignment::new(0, name, 15.0))
                 .is_err());
         }
 

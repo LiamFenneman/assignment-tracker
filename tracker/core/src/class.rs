@@ -1,6 +1,9 @@
+use crate::err;
+use anyhow::Result;
 use std::fmt::{Debug, Display};
+
 /// Generic representation a university/school class/paper/course.
-pub trait Classlike: Display + Debug + PartialEq + Eq + PartialOrd + Ord {
+pub trait Classlike: Display + Debug + PartialEq + PartialOrd {
     /// A **unique** *code* for a [class](Classlike).
     ///
     /// **Uniqueness** is enforced by the **user** of the [class](Classlike).
@@ -18,12 +21,41 @@ pub trait Classlike: Display + Debug + PartialEq + Eq + PartialOrd + Ord {
 
     /// Create a new [class](Classlike) where the *code* and *name* are the different.
     fn with_name(code: &str, name: &str) -> Self;
+
+    /// Total value of the class.
+    ///
+    /// # Ensures
+    /// Total value is within `0.0..=100.0`
+    fn total_value(&self) -> f64;
+
+    /// Set the total value of the [assignments](crate::Assignmentlike) within the [class](Classlike).
+    ///
+    /// # Errors
+    /// - `value` is **not** within the range `0.0..=100.0`
+    fn set_total_value(&mut self, value: f64) -> Result<()>;
+
+    /// Add to the total value of the [assignments](crate::Assignmentlike) within the [class](Classlike).
+    ///
+    /// # Errors
+    /// - `total_value() + to_add` is **not** within the range `0.0..=100.0`
+    fn add_total_value(&mut self, to_add: f64) -> Result<()> {
+        self.set_total_value(self.total_value() + to_add)
+    }
+
+    /// Remove from the total value of the [assignments](crate::Assignmentlike) within the [class](Classlike).
+    ///
+    /// # Errors
+    /// - `total_value() - to_remove` is **not** within the range `0.0..=100.0`
+    fn remove_total_value(&mut self, to_remove: f64) -> Result<()> {
+        self.set_total_value(self.total_value() - to_remove)
+    }
 }
 
 /// Implementation of [Classlike] that **only** contains a *code*.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Code {
     code: String,
+    total_value: f64,
 }
 
 impl Classlike for Code {
@@ -38,13 +70,26 @@ impl Classlike for Code {
     fn new(code: &str) -> Self {
         Self {
             code: code.to_owned(),
+            total_value: 0.0,
         }
     }
 
     fn with_name(code: &str, _name: &str) -> Self {
-        Self {
-            code: code.to_owned(),
+        Self::new(code)
+    }
+
+    fn total_value(&self) -> f64 {
+        self.total_value
+    }
+
+    fn set_total_value(&mut self, value: f64) -> Result<()> {
+        if !(0.0..=100.0).contains(&value) {
+            err!("{self} -> Total value ({value}) must be within 0.0..=100.0");
         }
+
+        trace!("{self} -> Total value -> {value}");
+        self.total_value = value;
+        Ok(())
     }
 }
 
@@ -56,17 +101,16 @@ impl Display for Code {
 
 impl Default for Code {
     fn default() -> Self {
-        Self {
-            code: String::from("DEFAULT"),
-        }
+        Self::new("DEFAULT")
     }
 }
 
 /// Implementation of [Classlike] that contains a *code* **and** a *name*.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Class {
     code: String,
     name: String,
+    total_value: f64,
 }
 
 impl Classlike for Class {
@@ -79,17 +123,29 @@ impl Classlike for Class {
     }
 
     fn new(code: &str) -> Self {
-        Self {
-            code: code.to_owned(),
-            name: code.to_owned(),
-        }
+        Self::with_name(code, code)
     }
 
     fn with_name(code: &str, name: &str) -> Self {
         Self {
             code: code.to_owned(),
             name: name.to_owned(),
+            total_value: 0.0,
         }
+    }
+
+    fn total_value(&self) -> f64 {
+        self.total_value
+    }
+
+    fn set_total_value(&mut self, value: f64) -> Result<()> {
+        if !(0.0..=100.0).contains(&value) {
+            err!("{self} -> Total value ({value}) must be within 0.0..=100.0");
+        }
+
+        trace!("{self} -> Total value -> {value}");
+        self.total_value = value;
+        Ok(())
     }
 }
 
@@ -101,9 +157,6 @@ impl Display for Class {
 
 impl Default for Class {
     fn default() -> Self {
-        Self {
-            code: String::from("DEFAULT"),
-            name: String::from("Default Class"),
-        }
+        Self::with_name("DEFAULT", "Default Class")
     }
 }
