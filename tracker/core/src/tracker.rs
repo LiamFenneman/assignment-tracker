@@ -34,6 +34,10 @@ where
     #[must_use]
     fn get_assignments(&self) -> &[A];
 
+    /// Get all the assignments within the [tracker](Trackerlike).
+    #[must_use]
+    fn get_assignments_mut(&mut self) -> &mut [A];
+
     /// Add a [class](crate::Classlike) to the [tracker](Trackerlike).
     ///
     /// # Errors
@@ -64,6 +68,11 @@ where
     /// Get the [assignment](Assignmentlike) that corresponds to the given *ID*.
     fn get_assignment_by_id(&self, id: u32) -> Option<&A> {
         self.get_assignments().iter().find(|a| a.id() == id)
+    }
+
+    /// Get the [assignment](Assignmentlike) that corresponds to the given *ID*.
+    fn get_assignment_by_id_mut(&mut self, id: u32) -> Option<&mut A> {
+        self.get_assignments_mut().iter_mut().find(|a| a.id() == id)
     }
 
     /// Get the [class](Classlike) that corresponds to the given *code*.
@@ -114,6 +123,10 @@ where
 
     fn get_assignments(&self) -> &[A] {
         &self.assignments
+    }
+
+    fn get_assignments_mut(&mut self) -> &mut [A] {
+        &mut self.assignments
     }
 
     fn add_class(&mut self, class: C) -> Result<()> {

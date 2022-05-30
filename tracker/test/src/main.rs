@@ -1,5 +1,6 @@
 use anyhow::Result;
 use chrono::NaiveDate;
+use rand::{thread_rng, Rng};
 use tracker_core::*;
 
 fn invalid_marks() {
@@ -40,15 +41,53 @@ fn assignment_builder() -> Result<()> {
 }
 
 fn tracker() -> Result<()> {
+    const CLASS_A: &str = "CLASS 111";
+    const CLASS_B: &str = "OTHER 999";
+    const N: u32 = 5;
+
     let mut t = Tracker::<Code>::new("Code Tracker");
-    t.add_class(Code::default())?;
-    let code = "DEFAULT";
-    for i in 0..10 {
-        t.add_assignment(code, Assignment::new(i, &format!("Assignment {i}"), 10.0))?;
+
+    // CREATE & ADD CLASSES
+    t.add_class(Code::new(CLASS_A))?;
+    t.add_class(Code::new(CLASS_B))?;
+
+    // CREATE & ADD ASSIGNMENTS
+    for i in 0..N {
+        t.add_assignment(CLASS_A, gen(i, i, 100.0 / N as f64))?;
+        t.add_assignment(CLASS_B, gen(i + N, i, 100.0 / N as f64))?;
     }
-    t.remove_assignment(0)?;
-    t.remove_class(code)?;
+
+    // TODO: UPDATE CLASSES
+
+    // EDIT ASSIGNMENTS
+    t.get_assignment_by_id_mut(1)
+        .unwrap()
+        .set_mark(Mark::percent(75.0)?)?;
+
+    t.get_assignment_by_id_mut(2)
+        .unwrap()
+        .set_due_date(NaiveDate::from_ymd(2022, 5, 1).and_hms(23, 59, 59));
+
+    // TODO: UPDATE ASSIGNMENTS
+
+    // REMOVE ASSIGNMENTS
+    t.remove_assignment(1)?;
+    t.remove_assignment(2)?;
+    t.remove_assignment(3)?;
+
+    // REMOVE CLASSES
+    t.remove_class(CLASS_A)?;
+    t.remove_class(CLASS_B)?;
+
+    println!("{t:#?}");
+
     Ok(())
+}
+
+fn gen(a: u32, b: u32, max_v: f64) -> Assignment {
+    let mut rng = thread_rng();
+    let v = rng.gen_range(0.0..=max_v).round();
+    Assignment::new(a, &format!("Assign {b}"), v)
 }
 
 fn main() -> Result<()> {
