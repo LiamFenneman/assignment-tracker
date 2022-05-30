@@ -1,4 +1,4 @@
-use crate::{err, Mark};
+use crate::prelude::*;
 use anyhow::Result;
 use chrono::NaiveDateTime;
 use std::fmt::{Debug, Display};
@@ -13,7 +13,7 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     /// The name of the [assignment](Assignmentlike).
     fn name(&self) -> &str;
 
-    /// Represents how much the [assignment](Assignmentlike) is worth in relation to the other [assignments](Assignmentlike) in the [class](crate::Classlike).
+    /// Represents how much the [assignment](Assignmentlike) is worth in relation to the other [assignments](Assignmentlike) in the [class](Classlike).
     fn value(&self) -> f64;
 
     /// The mark given for the [assignment](Assignmentlike).
@@ -71,7 +71,7 @@ impl Assignmentlike for Assignment {
 
     fn set_mark(&mut self, mark: Mark) -> Result<()> {
         if !mark.is_valid() {
-            err!("Provided mark is invalid: {mark:?}");
+            bail!("Provided mark is invalid: {mark:?}");
         }
 
         trace!("{self} -> Set mark -> {mark:?}");
@@ -106,7 +106,7 @@ impl Assignment {
     ///
     /// # Examples
     /// ```
-    /// # use tracker_core::*;
+    /// # use tracker_core::prelude::*;
     /// let assign = Assignment::new(10, "Test 1", 35.0);
     /// let assign = Assignment::new(25, "Assignment 1", 15.0);
     /// let assign = Assignment::new(102, "Exam", 55.0);
@@ -126,7 +126,7 @@ impl Assignment {
     ///
     /// # Examples
     /// ```
-    /// # use tracker_core::*;
+    /// # use tracker_core::prelude::*;
     /// # use chrono::NaiveDate;
     /// let assign = Assignment::builder(10, "Test 1", 35.0).build();
     /// assert_eq!(Assignment::new(10, "Test 1", 35.0), assign);

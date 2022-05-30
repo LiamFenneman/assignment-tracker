@@ -1,4 +1,3 @@
-use crate::err;
 use anyhow::Result;
 use std::fmt::{Debug, Display};
 
@@ -28,13 +27,13 @@ pub trait Classlike: Display + Debug + PartialEq + PartialOrd {
     /// Total value is within `0.0..=100.0`
     fn total_value(&self) -> f64;
 
-    /// Set the total value of the [assignments](crate::Assignmentlike) within the [class](Classlike).
+    /// Set the total value of the [assignments](crate::prelude::Assignmentlike) within the [class](Classlike).
     ///
     /// # Errors
     /// - `value` is **not** within the range `0.0..=100.0`
     fn set_total_value(&mut self, value: f64) -> Result<()>;
 
-    /// Add to the total value of the [assignments](crate::Assignmentlike) within the [class](Classlike).
+    /// Add to the total value of the [assignments](crate::prelude::Assignmentlike) within the [class](Classlike).
     ///
     /// # Errors
     /// - `total_value() + to_add` is **not** within the range `0.0..=100.0`
@@ -42,7 +41,7 @@ pub trait Classlike: Display + Debug + PartialEq + PartialOrd {
         self.set_total_value(self.total_value() + to_add)
     }
 
-    /// Remove from the total value of the [assignments](crate::Assignmentlike) within the [class](Classlike).
+    /// Remove from the total value of the [assignments](crate::prelude::Assignmentlike) within the [class](Classlike).
     ///
     /// # Errors
     /// - `total_value() - to_remove` is **not** within the range `0.0..=100.0`
@@ -84,7 +83,7 @@ impl Classlike for Code {
 
     fn set_total_value(&mut self, value: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&value) {
-            err!("{self} -> Total value ({value}) must be within 0.0..=100.0");
+            bail!("{self} -> Total value ({value}) must be within 0.0..=100.0");
         }
 
         trace!("{self} -> Total value -> {value}");
@@ -140,7 +139,7 @@ impl Classlike for Class {
 
     fn set_total_value(&mut self, value: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&value) {
-            err!("{self} -> Total value ({value}) must be within 0.0..=100.0");
+            bail!("{self} -> Total value ({value}) must be within 0.0..=100.0");
         }
 
         trace!("{self} -> Total value -> {value}");

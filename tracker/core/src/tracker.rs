@@ -1,4 +1,4 @@
-use crate::{err, Assignment, Assignmentlike, Class, Classlike};
+use crate::prelude::*;
 use anyhow::Result;
 use std::{
     collections::HashMap,
@@ -15,7 +15,7 @@ where
     ///
     /// # Examples
     /// ```
-    /// # use tracker_core::*;
+    /// # use tracker_core::prelude::*;
     /// let tracker = Tracker::<Class>::new("Class Tracker");
     /// let tracker = Tracker::<Code>::new("Code Tracker");
     /// ```
@@ -38,19 +38,19 @@ where
     #[must_use]
     fn get_assignments_mut(&mut self) -> &mut [A];
 
-    /// Add a [class](crate::Classlike) to the [tracker](Trackerlike).
+    /// Add a [class](Classlike) to the [tracker](Trackerlike).
     ///
     /// # Errors
     /// - `class.code()` already taken
     fn add_class(&mut self, class: C) -> Result<()>;
 
-    /// Remove a [class](crate::Classlike) from the [tracker](Trackerlike).
+    /// Remove a [class](Classlike) from the [tracker](Trackerlike).
     ///
     /// # Errors
     /// - `code` isn't used by any [class](Classlike)
     fn remove_class(&mut self, code: &str) -> Result<C>;
 
-    /// Add an [assignment](crate::Assignmentlike) to the [tracker](Trackerlike).
+    /// Add an [assignment](Assignmentlike) to the [tracker](Trackerlike).
     ///
     /// # Errors
     /// - `assign.id()` already taken by another assignment
@@ -59,7 +59,7 @@ where
     /// - Total value of assignments within `code` greater than `100.0`
     fn add_assignment(&mut self, code: &str, assign: A) -> Result<()>;
 
-    /// Remove an [assignment](crate::Assignmentlike) from the [tracker](Trackerlike).
+    /// Remove an [assignment](Assignmentlike) from the [tracker](Trackerlike).
     ///
     /// # Errors
     /// - No assignment with id: `assign_id` exists within the tracker
@@ -86,7 +86,7 @@ where
     }
 }
 
-/// Keep track of many [assignments](crate::Assignmentlike) from many [classes](crate::Classlike).
+/// Keep track of many [assignments](Assignmentlike) from many [classes](Classlike).
 #[derive(Debug)]
 pub struct Tracker<C = Class, A = Assignment>
 where
@@ -132,7 +132,7 @@ where
     fn add_class(&mut self, class: C) -> Result<()> {
         if self.get_classes().iter().any(|c| c.code() == class.code()) {
             let code = class.code();
-            err!("{self} -> Class code ({code}) already exists");
+            bail!("{self} -> Class code ({code}) already exists");
         }
 
         trace!("{self} -> Add class -> {class:?}");
@@ -144,7 +144,7 @@ where
 
     fn remove_class(&mut self, code: &str) -> Result<C> {
         let Some(index) = self.get_classes().iter().position(|c| c.code() == code) else {
-            err!("{self} -> Could not find a class with code: {code}");
+            bail!("{self} -> Could not find a class with code: {code}");
         };
 
         let ids = self
@@ -166,7 +166,7 @@ where
     fn add_assignment(&mut self, code: &str, assign: A) -> Result<()> {
         if self.get_assignments().iter().any(|a| a.id() == assign.id()) {
             let id = assign.id();
-            err!("{self} -> Assignment ID ({id}) already exists.");
+            bail!("{self} -> Assignment ID ({id}) already exists.");
         }
 
         // ensure unique assignment name within a class
@@ -178,13 +178,13 @@ where
             .any(|id| self.map.get(&id).is_some_and(|&s| s == code))
         {
             let name = assign.name();
-            err!("{self} -> Assignment name ({name}) already taken for {code}.");
+            bail!("{self} -> Assignment name ({name}) already taken for {code}.");
         }
 
         // ensure total value within class is less than 100
         match self.get_class_by_code_mut(code) {
             None => {
-                err!("{self} -> Class ({code}) doesn't exist.");
+                bail!("{self} -> Class ({code}) doesn't exist.");
             }
             Some(class) => {
                 class.add_total_value(assign.value())?;
@@ -203,7 +203,7 @@ where
 
     fn remove_assignment(&mut self, assign_id: u32) -> Result<A> {
         let Some(index) = self.get_assignments().iter().position(|a| a.id() == assign_id) else {
-            err!("{self} -> Could not find a assignment with ID: {assign_id}");
+            bail!("{self} -> Could not find a assignment with ID: {assign_id}");
         };
 
         // remove the entry in map
@@ -240,7 +240,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Assignment, Code};
     use rstest::rstest;
 
     #[rstest]

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::NaiveDate;
 use rand::{thread_rng, Rng};
-use tracker_core::*;
+use tracker_core::prelude::*;
 
 fn invalid_marks() {
     let _ = Mark::percent(-10.0);

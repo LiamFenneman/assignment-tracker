@@ -1,9 +1,8 @@
 use std::fmt::Display;
-
 use thiserror::Error;
 
 /// Type of mark with value.
-/// Different [assignments](crate::Assignmentlike) can use different marking systems.
+/// Different [assignments](crate::prelude::Assignmentlike) can use different marking systems.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum Mark {
@@ -13,7 +12,7 @@ pub enum Mark {
     ///
     /// # Examples
     /// ```
-    /// # use tracker_core::Mark;
+    /// # use tracker_core::prelude::Mark;
     /// let a = Mark::Percent(85.0);  // 85%
     /// let b = Mark::Percent(72.25); // 72.25%
     ///
@@ -35,7 +34,7 @@ pub enum Mark {
     ///
     /// # Examples
     /// ```
-    /// # use tracker_core::Mark;
+    /// # use tracker_core::prelude::Mark;
     /// let a = Mark::Letter('A');
     /// let b = Mark::Letter('B');
     ///
@@ -59,7 +58,7 @@ pub enum Mark {
     ///
     /// # Examples
     /// ```
-    /// # use tracker_core::Mark;
+    /// # use tracker_core::prelude::Mark;
     /// let a = Mark::OutOf(15, 20); // 15 marks out of 20
     /// let b = Mark::OutOf(13, 15); // 13 marks out of 15
     ///

@@ -1,3 +1,5 @@
+//! # Tracker Core
+//! Core utility to keep track of classes and assignments.
 #![warn(clippy::pedantic)]
 #![feature(let_else)]
 #![feature(is_some_with)]
@@ -7,27 +9,23 @@ extern crate log;
 #[macro_use]
 extern crate anyhow;
 
-mod mark;
-pub use mark::InvalidMarkError;
-pub use mark::Mark;
+pub mod assignment;
+pub mod class;
+pub mod mark;
+pub mod tracker;
 
-mod class;
-pub use class::Class;
-pub use class::Classlike;
-pub use class::Code;
-
-mod assignment;
-pub use assignment::Assignment;
-pub use assignment::Assignmentlike;
-
-mod tracker;
 pub use tracker::Tracker;
-pub use tracker::Trackerlike;
 
-#[macro_export]
-macro_rules! err {
-    ($msg:expr) => {
-        error!($msg);
-        bail!($msg);
-    };
+pub mod prelude {
+    pub use crate::mark::Mark;
+
+    pub use crate::class::Class;
+    pub use crate::class::Classlike;
+    pub use crate::class::Code;
+
+    pub use crate::assignment::Assignment;
+    pub use crate::assignment::Assignmentlike;
+
+    pub use crate::tracker::Tracker;
+    pub use crate::tracker::Trackerlike;
 }
