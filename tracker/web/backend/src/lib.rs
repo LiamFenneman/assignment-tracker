@@ -92,6 +92,25 @@ async fn update_tracker<D>(mut req: Request, ctx: RouteContext<D>) -> Result<Res
     Response::error("Bad Request", 400)
 }
 
+async fn delete_tracker<D>(_req: Request, ctx: RouteContext<D>) -> Result<Response> {
+    // ensure the param "uuid" is given and parses into UUID
+    let Ok(id) = ctx.param("uuid").unwrap_or(&String::new()).parse::<Uuid>() else {
+        return Response::error("Bad Request: UUID not provided", 400);
+    };
+
+    // get access to kv store
+    let Ok(kv) = ctx.kv(KV_NAMESPACE) else {
+        return Response::error("Internal Server Error: could not connect to KV", 500);
+    };
+
+    // delete the tracker with the uuid param
+    if kv.delete(&id.to_string()).await.is_ok() {
+        return Response::ok(format!("Deleted tracker: {}", id));
+    }
+
+    Response::error("Bad Request", 400)
+}
+
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     utils::log_request(&req);
@@ -103,6 +122,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .post_async("/tracker/new", generate_new_tracker)
         .get_async("/tracker/:uuid", get_tracker)
         .post_async("/tracker/:uuid", update_tracker)
+        .delete_async("/tracker/:uuid", delete_tracker)
         .run(req, env)
         .await
 }
