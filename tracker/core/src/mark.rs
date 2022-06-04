@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use thiserror::Error;
 
 /// Type of mark with value.
 /// Different [assignments](crate::prelude::Assignmentlike) can use different marking systems.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Mark {
     /// Percentage value.
