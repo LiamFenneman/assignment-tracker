@@ -29,8 +29,8 @@ async fn generate_new_tracker<D>(req: Request, ctx: RouteContext<D>) -> Result<R
 
     // get access to kv store
     let Ok(kv) = ctx.kv(KV_NAMESPACE) else {
-                return Response::error("Internal Server Error", 500);
-            };
+        return Response::error("Internal Server Error", 500);
+    };
 
     // put the tracker into the kv store using the uuid created
     // TODO: replace format! with serialized Tracker
@@ -47,6 +47,25 @@ async fn generate_new_tracker<D>(req: Request, ctx: RouteContext<D>) -> Result<R
     Response::error("Bad Request", 400)
 }
 
+async fn get_tracker<D>(_req: Request, ctx: RouteContext<D>) -> Result<Response> {
+    // ensure the param "uuid" is given and parses into UUID
+    let Ok(id) = ctx.param("uuid").unwrap_or(&String::new()).parse::<Uuid>() else {
+        return Response::error("Bad Request: UUID not provided", 400);
+    };
+
+    // get access to kv store
+    let Ok(kv) = ctx.kv(KV_NAMESPACE) else {
+        return Response::error("Internal Server Error: could not connect to KV", 500);
+    };
+
+    // TODO: replace text() with json() using Tracker
+    let Some(tracker) = kv.get(&id.to_string()).text().await? else {
+        return Response::error("Not Found: UUID doesn't exist in KV", 404);
+    };
+
+    Response::ok(tracker)
+}
+
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     utils::log_request(&req);
@@ -57,13 +76,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     router
         .get("/", |_, _| Response::ok("Hello from Workers!"))
         .post_async("/tracker/new", generate_new_tracker)
-        .get("/tracker/:id", |_, ctx| {
-            let s = String::new();
-            match ctx.param("id").unwrap_or(&s).parse::<u32>() {
-                Ok(i) => Response::ok(format!("Tracker {}!", i)),
-                _ => Response::error("Bad Request", 400),
-            }
-        })
+        .get_async("/tracker/:uuid", get_tracker)
         .get_async("/kv/:key", |_, ctx| async move {
             let kv = ctx.kv(KV_NAMESPACE)?;
             if ctx.param("key").is_none() {
