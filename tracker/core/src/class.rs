@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use thiserror::Error;
 
@@ -52,7 +53,7 @@ pub trait Classlike: Display + Debug + PartialEq + PartialOrd {
 }
 
 /// Implementation of [Classlike] that **only** contains a *code*.
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Code {
     code: String,
     total_value: f64,
@@ -109,7 +110,7 @@ impl Default for Code {
 }
 
 /// Implementation of [Classlike] that contains a *code* **and** a *name*.
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Class {
     code: String,
     name: String,

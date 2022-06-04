@@ -3,6 +3,7 @@ use crate::tracker::InvalidTrackerError::{
     AssignmentIdNone, AssignmentIdTaken, AssignmentNameNotUnique, ClassCodeNone, ClassCodeTaken,
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
@@ -10,10 +11,10 @@ use std::{
 use thiserror::Error;
 
 /// Definition of methods required to be able to be a tracker.
-pub trait Trackerlike<C, A>
+pub trait Trackerlike<'de, C, A>: Serialize + Deserialize<'de>
 where
-    C: Classlike,
-    A: Assignmentlike,
+    C: Classlike + Serialize + Deserialize<'de>,
+    A: Assignmentlike + Serialize + Deserialize<'de>,
 {
     /// Get the name of the tracker.
     ///
@@ -97,7 +98,7 @@ where
 }
 
 /// Keep track of many [assignments](Assignmentlike) from many [classes](Classlike).
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Tracker<C = Class, A = Assignment>
 where
     C: Classlike,
@@ -109,10 +110,10 @@ where
     map: HashMap<u32, String>,
 }
 
-impl<C, A> Trackerlike<C, A> for Tracker<C, A>
+impl<'de, C, A> Trackerlike<'de, C, A> for Tracker<C, A>
 where
-    C: Classlike,
-    A: Assignmentlike,
+    C: Classlike + Serialize + Deserialize<'de>,
+    A: Assignmentlike + Serialize + Deserialize<'de>,
 {
     fn name(&self) -> &str {
         &self.name
@@ -248,10 +249,10 @@ where
     }
 }
 
-impl<C, A> Default for Tracker<C, A>
+impl<'de, C, A> Default for Tracker<C, A>
 where
-    C: Classlike,
-    A: Assignmentlike,
+    C: Classlike + Serialize + Deserialize<'de>,
+    A: Assignmentlike + Serialize + Deserialize<'de>,
 {
     fn default() -> Self {
         Self::new("Default Tracker")
@@ -419,5 +420,58 @@ mod tests {
 
         // double add
         assert!(t.remove_assignment(1).is_err());
+    }
+
+    mod serde {
+        use super::*;
+        use rand::{thread_rng, Rng};
+
+        #[test]
+        fn default() {
+            let tracker = Tracker::<Code>::default();
+            let expect = tracker.clone();
+
+            let json = serde_json::to_string(&tracker);
+            assert!(json.is_ok());
+
+            let str = json.unwrap();
+            println!("{str}");
+
+            let de = serde_json::from_str::<Tracker<Code>>(&str);
+            assert!(de.is_ok());
+            assert_eq!(de.unwrap(), expect);
+        }
+
+        #[test]
+        fn random() {
+            const CLASS_A: &str = "CLASS 111";
+            const CLASS_B: &str = "OTHER 999";
+            const N: u32 = 3;
+
+            let mut tracker = Tracker::<Code>::default();
+            drop(tracker.add_class(Code::new(CLASS_A)));
+            drop(tracker.add_class(Code::new(CLASS_B)));
+            for i in 0..N {
+                drop(tracker.add_assignment(CLASS_A, gen(i, i, 100.0 / f64::from(N))));
+                drop(tracker.add_assignment(CLASS_B, gen(i + N, i, 100.0 / f64::from(N))));
+            }
+            let expect = tracker.clone();
+
+            let json = serde_json::to_string_pretty(&tracker);
+            assert!(json.is_ok());
+
+            let str = json.unwrap();
+            println!("{str}");
+
+            let de = serde_json::from_str::<Tracker<Code>>(&str);
+            assert!(de.is_ok());
+            assert_eq!(de.unwrap(), expect);
+        }
+
+        fn gen(a: u32, b: u32, max_v: f64) -> Assignment {
+            let mut rng = thread_rng();
+            let v = rng.gen_range(0.0..=max_v).round();
+            Assignment::new(a, &format!("Assign {b}"), v)
+        }
     }
 }
