@@ -3,9 +3,10 @@ type = "javascript"
 workers_dev = true
 compatibility_date = "2022-01-20"
 
-kv_namespaces = [
-  { binding = "TRACKER_KV", id = "", preview_id = "5e9052702796417392287143300924f8" }
-]
+[[kv_namespaces]]
+binding = "TRACKER_KV"
+id = "e78738a9d9a843b08b385d292bcfc811"
+preview_id = "f282db37656b409dac442d96c954151c"
 
 [vars]
 WORKERS_RS_VERSION = "0.0.9"
