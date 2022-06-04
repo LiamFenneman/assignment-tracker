@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use anyhow::Result;
 use chrono::NaiveDateTime;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 
 /// Generic representation of an assignment.
@@ -39,7 +40,7 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
 }
 
 /// Basic implementation of [Assignmentlike].
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Assignment {
     id: u32,
     name: String,
