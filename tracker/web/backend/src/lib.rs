@@ -74,32 +74,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
     let router = Router::new();
     router
-        .get("/", |_, _| Response::ok("Hello from Workers!"))
         .post_async("/tracker/new", generate_new_tracker)
         .get_async("/tracker/:uuid", get_tracker)
-        .get_async("/kv/:key", |_, ctx| async move {
-            let kv = ctx.kv(KV_NAMESPACE)?;
-            if ctx.param("key").is_none() {
-                return Response::error("Bad Request", 400);
-            };
-            let key = ctx.param("key").expect("None checked above");
-
-            let txt = kv.get(key).text().await;
-            match txt {
-                Ok(opt) if opt.is_some() => Response::ok(opt.unwrap()),
-                _ => Response::error("Bad Request", 400),
-            }
-        })
-        .post_async("/kv/:key", |mut req, ctx| async move {
-            let kv = ctx.kv(KV_NAMESPACE)?;
-            if let Some(key) = ctx.param("key") {
-                if kv.put(key, req.text().await?)?.execute().await.is_ok() {
-                    return Ok(Response::ok("Updated KV")?.with_status(201));
-                }
-            };
-
-            Response::error("Bad Request", 400)
-        })
         .run(req, env)
         .await
 }
