@@ -11,6 +11,8 @@ mod utils;
 
 const KV_NAMESPACE: &str = "TRACKER_KV";
 
+type Tracker = tracker_core::Tracker<Code>;
+
 async fn generate_new_tracker<D>(req: Request, ctx: RouteContext<D>) -> Result<Response> {
     // generate a new id that will be the key in the kv store for the tracker
     // NOTE: this could potentially use v5 using some unique user data (e.g. email, name)
@@ -22,7 +24,7 @@ async fn generate_new_tracker<D>(req: Request, ctx: RouteContext<D>) -> Result<R
 
     // create an empty tracker with an optional name
     // TODO: allow using Code or Class
-    let tracker: Tracker<Code> = match name {
+    let tracker = match name {
         Some((_, name)) => Tracker::new(&name),
         _ => Tracker::default(),
     };
@@ -33,13 +35,8 @@ async fn generate_new_tracker<D>(req: Request, ctx: RouteContext<D>) -> Result<R
     };
 
     // put the tracker into the kv store using the uuid created
-    // TODO: replace format! with serialized Tracker
-    if kv
-        .put(&id.to_string(), format!("{:?}", tracker))?
-        .execute()
-        .await
-        .is_ok()
-    {
+    // tracker is serialized into json
+    if kv.put(&id.to_string(), tracker)?.execute().await.is_ok() {
         // tracker was successfully put into kv store, return the uuid with status 201
         return Ok(Response::ok(id.to_string())?.with_status(201));
     }
@@ -58,12 +55,13 @@ async fn get_tracker<D>(_req: Request, ctx: RouteContext<D>) -> Result<Response>
         return Response::error("Internal Server Error: could not connect to KV", 500);
     };
 
-    // TODO: replace text() with json() using Tracker
-    let Some(tracker) = kv.get(&id.to_string()).text().await? else {
+    // parse the json data from kv store into a Tracker
+    let Some(tracker) = kv.get(&id.to_string()).json::<Tracker>().await? else {
         return Response::error("Not Found: UUID doesn't exist in KV", 404);
     };
 
-    Response::ok(tracker)
+    // return the Tracker as json, this function deserializes and then serializes since Response::from_json creates a response with the correct headers for json
+    Response::from_json(&tracker)
 }
 
 #[event(fetch)]
