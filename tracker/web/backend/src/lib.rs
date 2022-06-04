@@ -64,6 +64,34 @@ async fn get_tracker<D>(_req: Request, ctx: RouteContext<D>) -> Result<Response>
     Response::from_json(&tracker)
 }
 
+async fn update_tracker<D>(mut req: Request, ctx: RouteContext<D>) -> Result<Response> {
+    // ensure the param "uuid" is given and parses into UUID
+    let Ok(id) = ctx.param("uuid").unwrap_or(&String::new()).parse::<Uuid>() else {
+        return Response::error("Bad Request: UUID not provided", 400);
+    };
+
+    let Ok(updated) = req.json::<Tracker>().await else {
+        return Response::error("Bad Request: JSON provided is invalid", 400);
+    };
+
+    // get access to kv store
+    let Ok(kv) = ctx.kv(KV_NAMESPACE) else {
+        return Response::error("Internal Server Error: could not connect to KV", 500);
+    };
+
+    // ensure that the UUID exists in the KV store
+    if kv.get(&id.to_string()).text().await?.is_none() {
+        return Response::error("Not Found: UUID doesn't exist in KV", 404);
+    };
+
+    // update the tracker in the KV store with the updated tracker
+    if kv.put(&id.to_string(), updated)?.execute().await.is_ok() {
+        return Response::ok(format!("Updated tracker: {}", id));
+    }
+
+    Response::error("Bad Request", 400)
+}
+
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     utils::log_request(&req);
@@ -74,6 +102,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     router
         .post_async("/tracker/new", generate_new_tracker)
         .get_async("/tracker/:uuid", get_tracker)
+        .post_async("/tracker/:uuid", update_tracker)
         .run(req, env)
         .await
 }
