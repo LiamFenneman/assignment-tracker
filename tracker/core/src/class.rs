@@ -1,4 +1,4 @@
-use crate::errors::InvalidClassError::TotalValueOutOfRange;
+use crate::errors::InvalidClassError;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
@@ -85,7 +85,7 @@ impl Classlike for Code {
 
     fn set_total_value(&mut self, value: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&value) {
-            bail!(TotalValueOutOfRange(self.name().to_owned(), value));
+            bail!(InvalidClassError::TotalValue(self.name().to_owned(), value));
         }
 
         trace!("{self} -> Total value -> {value}");
@@ -141,7 +141,7 @@ impl Classlike for Class {
 
     fn set_total_value(&mut self, value: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&value) {
-            bail!(TotalValueOutOfRange(self.name().to_owned(), value));
+            bail!(InvalidClassError::TotalValue(self.name().to_owned(), value));
         }
 
         trace!("{self} -> Total value -> {value}");

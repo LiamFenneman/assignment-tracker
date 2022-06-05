@@ -1,6 +1,4 @@
-use crate::errors::InvalidMarkError::{
-    self, LetterOutOfRange, OutOfTupleEquality, PercentOutOfRange,
-};
+use crate::errors::InvalidMarkError;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -93,10 +91,10 @@ impl Mark {
                 if (0.0..=0.1).contains(pct) {
                     warn!("Percent range is 0.0 to 100.0 -> Provided value ({pct}) might not be correct.");
                 }
-                Err(PercentOutOfRange(*pct))
+                Err(InvalidMarkError::Percent(*pct))
             }
-            Self::Letter(c) if !('A'..='Z').contains(c) => Err(LetterOutOfRange(*c)),
-            Self::OutOf(a, b) if a > b => Err(OutOfTupleEquality(*a, *b)),
+            Self::Letter(c) if !('A'..='Z').contains(c) => Err(InvalidMarkError::Letter(*c)),
+            Self::OutOf(a, b) if a > b => Err(InvalidMarkError::OutOf(*a, *b)),
             _ => Ok(()),
         }
     }
@@ -116,7 +114,7 @@ impl Mark {
         }
 
         if !(0.0..=100.0).contains(&pct) {
-            let e = PercentOutOfRange(pct);
+            let e = InvalidMarkError::Percent(pct);
             error!("{e}");
             return Err(e);
         }
@@ -130,7 +128,7 @@ impl Mark {
     /// - `c` is **not** within range `A..=Z`
     pub fn letter(c: char) -> MarkResult {
         if !('A'..='Z').contains(&c) {
-            let e = LetterOutOfRange(c);
+            let e = InvalidMarkError::Letter(c);
             error!("{e}");
             return Err(e);
         }
@@ -144,7 +142,7 @@ impl Mark {
     /// - `a` is greater than `b`
     pub fn out_of(a: u32, b: u32) -> MarkResult {
         if a > b {
-            let e = OutOfTupleEquality(a, b);
+            let e = InvalidMarkError::OutOf(a, b);
             error!("{e}");
             return Err(e);
         }

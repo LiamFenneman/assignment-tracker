@@ -5,13 +5,13 @@ use thiserror::Error;
 pub enum InvalidMarkError {
     /// [`Percent`](crate::prelude::Mark::Percent) value is outside the valid range
     #[error("Mark::Percent -> value ({0}) is outside the valid range: 0.0 to 100.0")]
-    PercentOutOfRange(f64),
+    Percent(f64),
     /// [`Letter`](crate::prelude::Mark::Letter) char is outside the valid range
     #[error("Mark::Letter -> char ({0}) is outside the valid range: A to Z")]
-    LetterOutOfRange(char),
+    Letter(char),
     /// [`OutOf`](crate::prelude::Mark::OutOf) left value is greater than right value
     #[error("Mark::OutOf -> left value ({0}) is greater than right value ({1})")]
-    OutOfTupleEquality(u32, u32),
+    OutOf(u32, u32),
 }
 
 /// The [assingment](crate::prelude::Assignment) is invalid.
@@ -30,19 +30,19 @@ pub enum InvalidAssignmentError {
 pub enum InvalidTrackerError {
     /// Class code is already taken by another class.
     #[error("{0} -> Class code ({1}) already exists")]
-    ClassCodeTaken(String, String),
+    CodeTaken(String, String),
     /// Class code doesn't exist.
     #[error("{0} -> Could not find a class with code: {1}")]
-    ClassCodeNone(String, String),
+    NoClass(String, String),
     /// Assignment ID is already taken by another assignment.
     #[error("{0} -> Assignment ID ({1}) already exists")]
-    AssignmentIdTaken(String, u32),
+    IdTaken(String, u32),
     /// Assignment ID doesn't exist.
     #[error("{0} -> Could not find a assignment with ID: {1}")]
-    AssignmentIdNone(String, u32),
+    NoAssignment(String, u32),
     /// Assignment name is already taken by another assignment within the class.
     #[error("{0} -> Assignment name ({1}) already taken for {2}")]
-    AssignmentNameNotUnique(String, String, String),
+    NameTaken(String, String, String),
 }
 
 /// The [class](crate::prelude::Classlike) is invalid.
@@ -50,5 +50,5 @@ pub enum InvalidTrackerError {
 pub enum InvalidClassError {
     /// The total value of all assignments must be within `0.0..=100.0`
     #[error("{0} -> Total value ({1}) must be within 0.0..=100.0")]
-    TotalValueOutOfRange(String, f64),
+    TotalValue(String, f64),
 }
