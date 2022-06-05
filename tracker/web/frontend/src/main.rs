@@ -1,44 +1,44 @@
 use yew::prelude::*;
+use yew_router::prelude::*;
 
-enum Msg {
-    AddOne,
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
+pub mod components;
+pub mod pages;
+
+use components::*;
+use pages::*;
+
+#[derive(Clone, Routable, PartialEq, Eq)]
+enum Route {
+    #[at("/")]
+    Home,
+    #[at("/tracker")]
+    Tracker,
+    #[not_found]
+    #[at("/404")]
+    NotFound,
 }
 
-struct Model {
-    value: i64,
+fn switch(routes: &Route) -> Html {
+    match routes {
+        Route::Home => html! {<Home />},
+        Route::Tracker => html! {<Tracker />},
+        Route::NotFound => html! { <h1>{ "404 Not Found" }</h1> },
+    }
 }
 
-impl Component for Model {
-    type Message = Msg;
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self { value: 0 }
-    }
-
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::AddOne => {
-                self.value += 1;
-                // the value has changed so we need to
-                // re-render for it to appear on the page
-                true
-            }
-        }
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        // This gives us a component's "`Scope`" which allows us to send messages, etc to the component.
-        let link = ctx.link();
-        html! {
-            <div>
-                <button onclick={link.callback(|_| Msg::AddOne)}>{ "+1" }</button>
-                <p>{ self.value }</p>
-            </div>
-        }
+#[function_component(Main)]
+fn app() -> Html {
+    html! {
+        <BrowserRouter>
+            <NavBar />
+            <Switch<Route> render={Switch::render(switch)} />
+        </BrowserRouter>
     }
 }
 
 fn main() {
-    yew::start_app::<Model>();
+    yew::start_app::<Main>();
 }

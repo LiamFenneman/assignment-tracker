@@ -4,6 +4,90 @@
 <head>
     <meta charset="utf-8" />
     <title>Assignment Tracker</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            overflow: hidden;
+            background-color: #333;
+            font-family: Arial, Helvetica, sans-serif;
+            padding: 0.8rem 0;
+        }
+
+        .navbar a {
+            font-size: 1.25rem;
+            color: white;
+            text-align: center;
+            padding: 100% 1.2rem;
+            text-decoration: none;
+        }
+
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        /* TRACKER */
+        .tracker {
+            background-color: #f2f2f2;
+            padding: 1rem;
+            margin: 0 auto;
+            width: 90%;
+        }
+
+        /* TRACKER GRID */
+        .tracker_grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(calc(500px + 2rem), 1fr));
+            gap: 2rem;
+        }
+
+        /* CARD */
+        .card {
+            background-color: #e7e7e7;
+            padding: 1rem;
+            min-width: 500px;
+            min-height: 300px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        }
+
+        .card h2 {
+            text-align: center;
+            font-size: 1.2rem;
+            margin: 0.25rem;
+        }
+
+        /* TABLE */
+        .tracker table {
+            width: 100%;
+            border: 1px solid #dadada;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+
+        .tracker table th {
+            border: 1px solid #b3adad;
+            padding: 5px;
+            background: #d4d4d4;
+            color: #313030;
+        }
+
+        .tracker table td {
+            border: 1px solid #b3adad;
+            text-align: center;
+            padding: 5px;
+            background: transparent;
+            color: #313030;
+        }
+    </style>
 </head>
 
 </html>
