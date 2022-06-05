@@ -52,13 +52,9 @@ impl Component for ClassCard {
                                 <tr>
                                     <td>{ assignment.name() }</td>
                                     <td>{ option_to_string(assignment.mark()) }</td>
-                                    <td>{ assignment.value() }</td>
+                                    <td>{ option_to_string(assignment.value()) }</td>
                                     <td>{ option_to_string(assignment.due_date()) }</td>
-                                    // TODO: replace with `status` method
-                                    <td>{ match assignment.mark() {
-                                        Some(_) => "Complete",
-                                        None => "Incomplete",
-                                    } }</td>
+                                    <td>{ assignment.status() }</td>
                                 </tr>
                             }
                         }).collect::<Html>()
