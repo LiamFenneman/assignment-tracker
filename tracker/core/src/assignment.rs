@@ -1,4 +1,7 @@
-use crate::{mark::InvalidMarkError, prelude::*};
+pub mod mark;
+pub use mark::Mark;
+
+use crate::errors::InvalidMarkError;
 use anyhow::Result;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
@@ -14,7 +17,7 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     /// The name of the [assignment](Assignmentlike).
     fn name(&self) -> &str;
 
-    /// Represents how much the [assignment](Assignmentlike) is worth (by percentage) in relation to the other [assignments](Assignmentlike) in the [class](Classlike).
+    /// Represents how much the [assignment](Assignmentlike) is worth (by percentage) in relation to the other [assignments](Assignmentlike) in the [class](crate::prelude::Classlike).
     fn value(&self) -> Option<f64>;
 
     /// The mark given for the [assignment](Assignmentlike).

@@ -1,6 +1,8 @@
+use crate::errors::InvalidMarkError::{
+    self, LetterOutOfRange, OutOfTupleEquality, PercentOutOfRange,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use thiserror::Error;
 
 /// Type of mark with value.
 /// Different [assignments](crate::prelude::Assignmentlike) can use different marking systems.
@@ -91,12 +93,10 @@ impl Mark {
                 if (0.0..=0.1).contains(pct) {
                     warn!("Percent range is 0.0 to 100.0 -> Provided value ({pct}) might not be correct.");
                 }
-                Err(InvalidMarkError::PercentOutOfRange(*pct))
+                Err(PercentOutOfRange(*pct))
             }
-            Self::Letter(c) if !('A'..='Z').contains(c) => {
-                Err(InvalidMarkError::LetterOutOfRange(*c))
-            }
-            Self::OutOf(a, b) if a > b => Err(InvalidMarkError::OutOfTupleEquality(*a, *b)),
+            Self::Letter(c) if !('A'..='Z').contains(c) => Err(LetterOutOfRange(*c)),
+            Self::OutOf(a, b) if a > b => Err(OutOfTupleEquality(*a, *b)),
             _ => Ok(()),
         }
     }
@@ -116,7 +116,7 @@ impl Mark {
         }
 
         if !(0.0..=100.0).contains(&pct) {
-            let e = InvalidMarkError::PercentOutOfRange(pct);
+            let e = PercentOutOfRange(pct);
             error!("{e}");
             return Err(e);
         }
@@ -130,7 +130,7 @@ impl Mark {
     /// - `c` is **not** within range `A..=Z`
     pub fn letter(c: char) -> MarkResult {
         if !('A'..='Z').contains(&c) {
-            let e = InvalidMarkError::LetterOutOfRange(c);
+            let e = LetterOutOfRange(c);
             error!("{e}");
             return Err(e);
         }
@@ -144,7 +144,7 @@ impl Mark {
     /// - `a` is greater than `b`
     pub fn out_of(a: u32, b: u32) -> MarkResult {
         if a > b {
-            let e = InvalidMarkError::OutOfTupleEquality(a, b);
+            let e = OutOfTupleEquality(a, b);
             error!("{e}");
             return Err(e);
         }
@@ -161,20 +161,6 @@ impl Display for Mark {
             Self::OutOf(a, b) => write!(f, "{a} / {b}"),
         }
     }
-}
-
-/// The value contained in the [mark](Mark) is invalid.
-#[derive(Error, Debug)]
-pub enum InvalidMarkError {
-    /// [`Mark::Percent`] value is outside the valid range
-    #[error("Mark::Percent -> value ({0}) is outside the valid range: 0.0 to 100.0")]
-    PercentOutOfRange(f64),
-    /// [`Mark::Letter`] char is outside the valid range
-    #[error("Mark::Letter -> char ({0}) is outside the valid range: A to Z")]
-    LetterOutOfRange(char),
-    /// [`Mark::OutOf`] left value is greater than right value
-    #[error("Mark::OutOf -> left value ({0}) is greater than right value ({1})")]
-    OutOfTupleEquality(u32, u32),
 }
 
 #[cfg(test)]

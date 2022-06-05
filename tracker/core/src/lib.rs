@@ -89,13 +89,13 @@ extern crate anyhow;
 
 pub mod assignment;
 pub mod class;
-pub mod mark;
+pub mod errors;
 pub mod tracker;
 
 pub use tracker::Tracker;
 
 pub mod prelude {
-    pub use crate::mark::Mark;
+    pub use crate::assignment::mark::Mark;
 
     pub use crate::class::Class;
     pub use crate::class::Classlike;

@@ -1,14 +1,13 @@
-use crate::prelude::*;
-use crate::tracker::InvalidTrackerError::{
+use crate::errors::InvalidTrackerError::{
     AssignmentIdNone, AssignmentIdTaken, AssignmentNameNotUnique, ClassCodeNone, ClassCodeTaken,
 };
+use crate::prelude::*;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
 };
-use thiserror::Error;
 
 /// Definition of methods required to be able to be a tracker.
 pub trait Trackerlike<'de, C, A>: Serialize + Deserialize<'de>
@@ -195,7 +194,7 @@ where
 
     fn remove_class(&mut self, code: &str) -> Result<C> {
         let Some(index) = self.classes().iter().position(|c| c.code() == code) else {
-            bail!( ClassCodeTaken(
+            bail!(ClassCodeTaken(
                 self.name().to_owned(),
                 code.to_owned()
             ));
@@ -291,26 +290,6 @@ where
     fn default() -> Self {
         Self::new("Default Tracker")
     }
-}
-
-/// The [tracker](Trackerlike) is invalid.
-#[derive(Error, Debug)]
-pub enum InvalidTrackerError {
-    /// Class code is already taken by another class.
-    #[error("{0} -> Class code ({1}) already exists")]
-    ClassCodeTaken(String, String),
-    /// Class code doesn't exist.
-    #[error("{0} -> Could not find a class with code: {1}")]
-    ClassCodeNone(String, String),
-    /// Assignment ID is already taken by another assignment.
-    #[error("{0} -> Assignment ID ({1}) already exists")]
-    AssignmentIdTaken(String, u32),
-    /// Assignment ID doesn't exist.
-    #[error("{0} -> Could not find a assignment with ID: {1}")]
-    AssignmentIdNone(String, u32),
-    /// Assignment name is already taken by another assignment within the class.
-    #[error("{0} -> Assignment name ({1}) already taken for {2}")]
-    AssignmentNameNotUnique(String, String, String),
 }
 
 #[cfg(test)]
