@@ -1176,8 +1176,10 @@ name = "tracker-web-frontend"
 version = "0.1.0"
 dependencies = [
  "tracker_core",
+ "uuid",
  "wee_alloc",
  "yew",
+ "yew-hooks",
  "yew-router",
 ]
 
@@ -1254,6 +1256,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c6d5d669b51467dcf7b2f1a796ce0f955f05f01cafda6c19d6e95f730df29238"
 dependencies = [
  "getrandom",
+ "serde",
 ]
 
 [[package]]
@@ -1497,6 +1500,22 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "yew-macro",
+]
+
+[[package]]
+name = "yew-hooks"
+version = "0.1.56"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1807cd5bf44c34255534fc8a824b0d6c1022147affecbb7f10c6753f336e7309"
+dependencies = [
+ "gloo",
+ "js-sys",
+ "log",
+ "serde",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "yew",
 ]
 
 [[package]]

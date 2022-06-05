@@ -5,10 +5,11 @@ use yew_router::prelude::*;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 pub mod components;
+pub mod globals;
 pub mod pages;
 
-use components::*;
-use pages::*;
+pub use components::*;
+pub use pages::*;
 
 #[derive(Clone, Routable, PartialEq, Eq)]
 enum Route {
