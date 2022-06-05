@@ -243,7 +243,7 @@ where
                 bail!(ClassCodeNone(self.name().to_owned(), code.to_owned()));
             }
             Some(class) => {
-                class.add_total_value(assign.value())?;
+                class.add_total_value(assign.value().unwrap_or(0.0))?;
             }
         };
 
@@ -354,7 +354,7 @@ mod tests {
             let mut t = Tracker::<Code>::default();
             assert!(t.add_class(Code::new("CLASS A")).is_ok());
             assert!(t.add_class(Code::new("CLASS B")).is_ok());
-            let gen = |a, b: u32| Assignment::new(a, &format!("A{}", b), 10.0);
+            let gen = |a, b: u32| Assignment::new(a, &format!("A{}", b));
             for i in 0..a {
                 assert!(t.add_assignment("CLASS A", gen(i, i)).is_ok());
             }
@@ -393,17 +393,13 @@ mod tests {
         fn same_id(#[case] s: &str) {
             let mut t = Tracker::<Code>::default();
             assert!(t.add_class(Code::new("TEST123")).is_ok());
-            assert!(t
-                .add_assignment("TEST123", Assignment::new(1, s, 15.0))
-                .is_ok());
+            assert!(t.add_assignment("TEST123", Assignment::new(1, s)).is_ok());
 
             // one entry in the map
             assert_eq!(1, t.map.len());
 
             // double add
-            assert!(t
-                .add_assignment("TEST123", Assignment::new(1, s, 25.0))
-                .is_err());
+            assert!(t.add_assignment("TEST123", Assignment::new(1, s)).is_err());
         }
 
         #[rstest]
@@ -414,12 +410,8 @@ mod tests {
             let mut t = Tracker::<Code>::default();
             assert!(t.add_class(Code::default()).is_ok());
             let code = "DEFAULT";
-            assert!(t
-                .add_assignment(code, Assignment::new(0, name, 15.0))
-                .is_ok());
-            assert!(t
-                .add_assignment(code, Assignment::new(1, name, 25.0))
-                .is_err());
+            assert!(t.add_assignment(code, Assignment::new(0, name)).is_ok());
+            assert!(t.add_assignment(code, Assignment::new(1, name)).is_err());
         }
 
         #[rstest]
@@ -428,9 +420,7 @@ mod tests {
         #[case("Exam")]
         fn no_class(#[case] name: &str) {
             let mut t = Tracker::<Code>::default();
-            assert!(t
-                .add_assignment("Class", Assignment::new(0, name, 15.0))
-                .is_err());
+            assert!(t.add_assignment("Class", Assignment::new(0, name)).is_err());
         }
 
         mod class_total_value {
@@ -446,10 +436,10 @@ mod tests {
                 assert!(t.add_class(Code::default()).is_ok());
                 let code = "DEFAULT";
                 assert!(t
-                    .add_assignment(code, Assignment::new(0, "Test 1", a1))
+                    .add_assignment(code, Assignment::new(0, "Test 1").with_value(a1))
                     .is_ok());
                 assert!(t
-                    .add_assignment(code, Assignment::new(1, "Test 2", a2))
+                    .add_assignment(code, Assignment::new(1, "Test 2").with_value(a2))
                     .is_ok());
             }
 
@@ -463,10 +453,10 @@ mod tests {
                 assert!(t.add_class(Code::default()).is_ok());
                 let code = "DEFAULT";
                 assert!(t
-                    .add_assignment(code, Assignment::new(0, "Test 1", a1))
+                    .add_assignment(code, Assignment::new(0, "Test 1").with_value(a1))
                     .is_ok());
                 assert!(t
-                    .add_assignment(code, Assignment::new(1, "Test 2", a2))
+                    .add_assignment(code, Assignment::new(1, "Test 2").with_value(a2))
                     .is_err());
             }
         }
@@ -481,9 +471,7 @@ mod tests {
     fn remove_assignment(#[case] s: &str) {
         let mut t = Tracker::<Code>::default();
         assert!(t.add_class(Code::new("TEST123")).is_ok());
-        assert!(t
-            .add_assignment("TEST123", Assignment::new(1, s, 15.0))
-            .is_ok());
+        assert!(t.add_assignment("TEST123", Assignment::new(1, s)).is_ok());
         assert!(t.remove_assignment(1).is_ok());
 
         // double add
@@ -492,7 +480,6 @@ mod tests {
 
     mod serde {
         use super::*;
-        use rand::{thread_rng, Rng};
 
         #[test]
         fn default() {
@@ -511,17 +498,19 @@ mod tests {
         }
 
         #[test]
-        fn random() {
+        fn many() {
             const CLASS_A: &str = "CLASS 111";
             const CLASS_B: &str = "OTHER 999";
             const N: u32 = 3;
 
+            let gen = |a, b| Assignment::new(a, &format!("Assign {b}"));
+
             let mut tracker = Tracker::<Code>::default();
-            drop(tracker.add_class(Code::new(CLASS_A)));
-            drop(tracker.add_class(Code::new(CLASS_B)));
+            tracker.add_class(Code::new(CLASS_A)).unwrap();
+            tracker.add_class(Code::new(CLASS_B)).unwrap();
             for i in 0..N {
-                drop(tracker.add_assignment(CLASS_A, gen(i, i, 100.0 / f64::from(N))));
-                drop(tracker.add_assignment(CLASS_B, gen(i + N, i, 100.0 / f64::from(N))));
+                tracker.add_assignment(CLASS_A, gen(i, i)).unwrap();
+                tracker.add_assignment(CLASS_B, gen(i + N, i)).unwrap();
             }
             let expect = tracker.clone();
 
@@ -534,12 +523,6 @@ mod tests {
             let de = serde_json::from_str::<Tracker<Code>>(&str);
             assert!(de.is_ok());
             assert_eq!(de.unwrap(), expect);
-        }
-
-        fn gen(a: u32, b: u32, max_v: f64) -> Assignment {
-            let mut rng = thread_rng();
-            let v = rng.gen_range(0.0..=max_v).round();
-            Assignment::new(a, &format!("Assign {b}"), v)
         }
     }
 }

@@ -7,6 +7,7 @@
 //! ```
 //! # use anyhow::Result;
 //! use tracker_core::prelude::*;
+//! use chrono::NaiveDate;
 //! # fn main() -> Result<()> {
 //!
 //! // create a tracker (can use Class or Code)
@@ -17,10 +18,11 @@
 //! tracker.add_class(class)?;
 //!
 //! // create and add assignments
-//! let a1 = Assignment::new(0, "Assignment 1", 50.0);
-//! let a2 = Assignment::builder(1, "Assignment 2", 50.0)
-//!     .mark(Mark::percent(30.0)?)
-//!     .build();
+//! let a1 = Assignment::new(0, "Assignment 1");
+//! let a2 = Assignment::new(1, "Assignment 2")
+//!     .with_value(25.0)
+//!     .with_mark(Mark::Percent(75.0))?
+//!     .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
 //! tracker.add_assignment("CLASS 101", a1)?;
 //! tracker.add_assignment("CLASS 101", a2)?;
 //! # Ok(()) }
@@ -53,26 +55,27 @@
 //! use tracker_core::prelude::*;
 //! # fn main() -> Result<()> {
 //!
-//! let mut assign = Assignment::new(0, "Assignment 1", 25.0);
+//! let mut assign = Assignment::new(0, "Assignment 1");
 //!
 //! // can be updated later
+//! assign.set_value(25.0);
 //! assign.set_mark(Mark::percent(75.0)?)?;
 //! assign.set_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
 //! # Ok(()) }
 //! ```
 //!
 //! ##### Builder Pattern
-//! Use the builder pattern when you want to provide a mark and/or due date.
+//! Use the following when you are not providing a mark or due date.
 //! ```
 //! # use anyhow::Result;
 //! use chrono::NaiveDate;
 //! use tracker_core::prelude::*;
 //! # fn main() -> Result<()> {
 //!
-//! let assign = Assignment::builder(0, "Assignment 1", 25.0)
-//!     .mark(Mark::letter('A')?)
-//!     .due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30))
-//!     .build();
+//! let mut assign = Assignment::new(0, "Assignment 1")
+//!    .with_value(25.0)
+//!    .with_mark(Mark::percent(75.0)?)?
+//!    .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
 //! # Ok(()) }
 //! ```
 #![warn(clippy::pedantic)]

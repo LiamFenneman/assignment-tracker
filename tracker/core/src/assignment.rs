@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{mark::InvalidMarkError, prelude::*};
 use anyhow::Result;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
@@ -14,8 +14,8 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     /// The name of the [assignment](Assignmentlike).
     fn name(&self) -> &str;
 
-    /// Represents how much the [assignment](Assignmentlike) is worth in relation to the other [assignments](Assignmentlike) in the [class](Classlike).
-    fn value(&self) -> f64;
+    /// Represents how much the [assignment](Assignmentlike) is worth (by percentage) in relation to the other [assignments](Assignmentlike) in the [class](Classlike).
+    fn value(&self) -> Option<f64>;
 
     /// The mark given for the [assignment](Assignmentlike).
     fn mark(&self) -> Option<Mark>;
@@ -23,19 +23,25 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     /// The due date of the [assignment](Assignmentlike).
     fn due_date(&self) -> Option<NaiveDateTime>;
 
+    /// Set the value of the [assignment](Assignmentlike).
+    fn set_value(&mut self, value: f64);
+
+    /// Set the value of the [assignment](Assignmentlike) to `None`.
+    fn remove_value(&mut self);
+
     /// Set the mark of the [assignment](Assignmentlike) to a new value.
     ///
     /// # Errors
     /// - `mark` is invalid. See [`Mark::check_valid()`]
     fn set_mark(&mut self, mark: Mark) -> Result<()>;
 
-    /// Set the mark to `None`.
+    /// Set the mark of the [assignment](Assignmentlike) to `None`.
     fn remove_mark(&mut self);
 
     /// Set the due date of the [assignment](Assignmentlike).
     fn set_due_date(&mut self, due_date: NaiveDateTime);
 
-    /// Set the due date to `None`.
+    /// Set the due date of the [assignment](Assignmentlike) to `None`.
     fn remove_due_date(&mut self);
 }
 
@@ -44,7 +50,7 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
 pub struct Assignment {
     id: u32,
     name: String,
-    value: f64,
+    value: Option<f64>,
     mark: Option<Mark>,
     due_date: Option<NaiveDateTime>,
 }
@@ -58,7 +64,7 @@ impl Assignmentlike for Assignment {
         &self.name
     }
 
-    fn value(&self) -> f64 {
+    fn value(&self) -> Option<f64> {
         self.value
     }
 
@@ -68,6 +74,16 @@ impl Assignmentlike for Assignment {
 
     fn due_date(&self) -> Option<NaiveDateTime> {
         self.due_date
+    }
+
+    fn set_value(&mut self, value: f64) {
+        trace!("{self} -> Set value -> {value:?}");
+        self.value = Some(value);
+    }
+
+    fn remove_value(&mut self) {
+        trace!("{self} -> Set mark -> None");
+        self.value = None;
     }
 
     fn set_mark(&mut self, mark: Mark) -> Result<()> {
@@ -95,96 +111,89 @@ impl Assignmentlike for Assignment {
 
 impl Default for Assignment {
     fn default() -> Self {
-        Assignment::new(0, "Default Assignment", 0.0)
+        Assignment::new(0, "Default Assignment")
     }
 }
 
 impl Assignment {
-    /// Create a new [assignment](Assignment) with no mark or due date.
-    ///
-    /// # Examples
-    /// ```
-    /// # use tracker_core::prelude::*;
-    /// let assign = Assignment::new(10, "Test 1", 35.0);
-    /// let assign = Assignment::new(25, "Assignment 1", 15.0);
-    /// let assign = Assignment::new(102, "Exam", 55.0);
-    /// ```
-    #[must_use]
-    pub fn new(id: u32, name: &str, value: f64) -> Self {
-        Self {
-            id,
-            name: name.to_owned(),
-            value,
-            mark: None,
-            due_date: None,
-        }
-    }
-
-    /// Create a new [assignment](Assignment) using the builder pattern.
+    /// Create a new [assignment](Assignment) with no value, mark, or due date.
     ///
     /// # Examples
     /// ```
     /// # use tracker_core::prelude::*;
     /// # use chrono::NaiveDate;
-    /// let assign = Assignment::builder(10, "Test 1", 35.0).build();
-    /// assert_eq!(Assignment::new(10, "Test 1", 35.0), assign);
+    /// let assign = Assignment::new(0, "Test 1");
     ///
-    /// let assign = Assignment::builder(5, "Exam", 35.0)
-    ///     .mark(Mark::Percent(75.0))
-    ///     .build();
+    /// let assign = Assignment::new(0, "Test 1")
+    ///     .with_value(25.0)
+    ///     .with_mark(Mark::Letter('A'))
+    ///     .expect("Invalid mark");
     ///
-    /// let assign = Assignment::builder(5, "Exam", 35.0)
-    ///     .due_date(NaiveDate::from_ymd(2022, 05, 01).and_hms(12, 33, 15))
-    ///     .build();
+    /// let assign = Assignment::new(0, "Test 1")
+    ///     .with_value(25.0)
+    ///     .with_due_date(NaiveDate::from_ymd(2022, 1, 1).and_hms(12, 0, 0));
     ///
-    /// let assign = Assignment::builder(5, "Exam", 35.0)
-    ///     .due_date(NaiveDate::from_ymd(2022, 05, 01).and_hms(12, 33, 15))
-    ///     .mark(Mark::Letter('A'))
-    ///     .build();
+    /// let assign = Assignment::new(0, "Test 1")
+    ///     .with_value(25.0)
+    ///     .with_mark(Mark::Letter('A'))
+    ///     .expect("Invalid mark")
+    ///     .with_due_date(NaiveDate::from_ymd(2022, 1, 1).and_hms(12, 0, 0));
     /// ```
     #[must_use]
-    pub fn builder(id: u32, name: &str, value: f64) -> Builder {
-        Builder {
+    pub fn new(id: u32, name: &str) -> Self {
+        Self {
             id,
             name: name.to_owned(),
-            value,
+            value: None,
             mark: None,
             due_date: None,
         }
     }
-}
 
-/// Builder for [Assignment].
-pub struct Builder {
-    id: u32,
-    name: String,
-    value: f64,
-    mark: Option<Mark>,
-    due_date: Option<NaiveDateTime>,
-}
-
-impl Builder {
-    /// Get the built [assignment](Assignment).
-    pub fn build(&mut self) -> Assignment {
-        let a = Assignment {
-            id: self.id,
-            name: self.name.clone(),
-            value: self.value,
-            mark: self.mark,
-            due_date: self.due_date,
-        };
-        trace!("Assignment built -> {a:?}");
-        a
-    }
-
-    /// Add the mark to the [assignment](Assignment).
-    pub fn mark(&mut self, mark: Mark) -> &mut Self {
-        self.mark = Some(mark);
+    /// Add a value to the [assignment](Assignment).
+    ///
+    /// # Examples
+    /// ```
+    /// # use tracker_core::prelude::*;
+    /// let mut assign = Assignment::new(10, "Test 1")
+    ///     .with_value(50.0);
+    /// ```
+    #[must_use]
+    pub fn with_value(mut self, value: f64) -> Self {
+        self.value = Some(value);
         self
     }
 
-    /// Add the due date to the [assignment](Assignment).
-    pub fn due_date(&mut self, due_date: NaiveDateTime) -> &mut Self {
+    /// Add a mark to the [assignment](Assignment).
+    ///
+    /// # Errors
+    /// - `mark` is invalid. See [`Mark::check_valid()`]
+    ///
+    /// # Examples
+    /// ```
+    /// # use tracker_core::prelude::*;
+    /// let mut assign = Assignment::new(10, "Test 1")
+    ///     .with_mark(Mark::Percent(75.0));
+    /// ```
+    pub fn with_mark(mut self, mark: Mark) -> Result<Self, InvalidMarkError> {
+        if let Err(e) = mark.check_valid() {
+            return Err(e);
+        }
+        self.mark = Some(mark);
+        Ok(self)
+    }
+
+    /// Add a due date to the [assignment](Assignment).
+    ///
+    /// # Examples
+    /// ```
+    /// # use tracker_core::prelude::*;
+    /// # use chrono::NaiveDate;
+    /// let mut assign = Assignment::new(10, "Test 1")
+    ///     .with_due_date(NaiveDate::from_ymd(2022, 1, 1).and_hms(12, 0, 0));
+    /// ```
+    #[must_use]
+    pub fn with_due_date(mut self, due_date: NaiveDateTime) -> Self {
         self.due_date = Some(due_date);
         self
     }
@@ -199,7 +208,6 @@ impl Display for Assignment {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::NaiveDate;
     use rstest::rstest;
 
     mod set_mark {
@@ -234,42 +242,6 @@ mod tests {
             let mut a = Assignment::default();
             let r = a.set_mark(mark);
             assert!(r.is_err(), "{mark:?}");
-        }
-    }
-
-    #[rstest]
-    #[case(None, None)]
-    #[case(Some(Mark::Percent(75.0)), None)]
-    #[case(None, Some(NaiveDate::from_ymd(2022, 5, 1).and_hms(12, 25, 30)))]
-    #[case(Some(Mark::Percent(50.0)), Some(NaiveDate::from_ymd(2022, 12, 25).and_hms(14, 45, 10)))]
-    fn builder(#[case] mark: Option<Mark>, #[case] due_date: Option<NaiveDateTime>) {
-        let func = |id: u32| {
-            let name = format!("Assignment {id}");
-            let mut ass = Assignment::builder(id, &name, 0.0);
-            let mut ass = &mut ass;
-
-            if let Some(m) = mark {
-                ass = ass.mark(m);
-            }
-
-            if let Some(d) = due_date {
-                ass = ass.due_date(d);
-            }
-
-            assert_eq!(
-                Assignment {
-                    id,
-                    name,
-                    value: 0.0,
-                    mark,
-                    due_date
-                },
-                ass.build()
-            );
-        };
-
-        for i in 0..10 {
-            func(i);
         }
     }
 }
