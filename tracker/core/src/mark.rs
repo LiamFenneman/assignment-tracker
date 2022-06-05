@@ -156,9 +156,9 @@ impl Mark {
 impl Display for Mark {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Percent(pct) => write!(f, "{pct:.2}%"),
+            Self::Percent(pct) => write!(f, "{pct:.1}%"),
             Self::Letter(c) => write!(f, "{c}"),
-            Self::OutOf(a, b) => write!(f, "{a} out of {b}"),
+            Self::OutOf(a, b) => write!(f, "{a} / {b}"),
         }
     }
 }
@@ -167,13 +167,13 @@ impl Display for Mark {
 #[derive(Error, Debug)]
 pub enum InvalidMarkError {
     /// [`Mark::Percent`] value is outside the valid range
-    #[error("Mark::Percent: value ({0}) is outside the valid range: 0.0 to 100.0")]
+    #[error("Mark::Percent -> value ({0}) is outside the valid range: 0.0 to 100.0")]
     PercentOutOfRange(f64),
     /// [`Mark::Letter`] char is outside the valid range
-    #[error("Mark::Letter: char ({0}) is outside the valid range: A to Z")]
+    #[error("Mark::Letter -> char ({0}) is outside the valid range: A to Z")]
     LetterOutOfRange(char),
     /// [`Mark::OutOf`] left value is greater than right value
-    #[error("Mark::OutOf: left value ({0}) is greater than right value ({1})")]
+    #[error("Mark::OutOf -> left value ({0}) is greater than right value ({1})")]
     OutOfTupleEquality(u32, u32),
 }
 

@@ -91,6 +91,11 @@ fn main() -> Result<()> {
     std::env::set_var("RUST_BACKTRACE", "1");
     pretty_env_logger::init();
 
+    println!("Valid Marks:");
+    println!("Percent\t-> {}", Mark::Percent(75.5));
+    println!("Letter\t-> {}", Mark::Letter('A'));
+    println!("OutOf\t-> {}", Mark::OutOf(22, 25));
+
     println!("Invalid Mark Test:");
     invalid_marks();
 
