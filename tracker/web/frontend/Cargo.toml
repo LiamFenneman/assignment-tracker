@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 tracker_core = { path = "../../core" }
 yew = "^0.19"
+yew-router = "^0.16"
+wee_alloc = "^0.4"

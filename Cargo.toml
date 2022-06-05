@@ -1,8 +1,17 @@
 [workspace]
-
 members = [
     "tracker/core",
     "tracker/web/backend",
     "tracker/web/frontend",
     "tracker/test"
 ]
+
+[profile.release]
+# less code to include into binary
+panic = 'abort'
+# link time optimization using using whole-program analysis
+lto = true
+# optimization over all codebase (better optimization, slower build)
+codegen-units = 1
+# optimization for size (could use 'z')
+opt-level = 's'
