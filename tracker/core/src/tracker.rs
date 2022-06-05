@@ -35,19 +35,19 @@ where
 
     /// Get all the classes within the [tracker](Trackerlike).
     #[must_use]
-    fn get_classes(&self) -> &[C];
+    fn classes(&self) -> &[C];
 
     /// Get all the classes within the [tracker](Trackerlike).
     #[must_use]
-    fn get_classes_mut(&mut self) -> &mut [C];
+    fn classes_mut(&mut self) -> &mut [C];
 
     /// Get all the assignments within the [tracker](Trackerlike).
     #[must_use]
-    fn get_assignments(&self) -> &[A];
+    fn assignments(&self) -> &[A];
 
     /// Get all the assignments within the [tracker](Trackerlike).
     #[must_use]
-    fn get_assignments_mut(&mut self) -> &mut [A];
+    fn assignments_mut(&mut self) -> &mut [A];
 
     /// Add a [class](Classlike) to the [tracker](Trackerlike).
     ///
@@ -77,23 +77,23 @@ where
     fn remove_assignment(&mut self, assign_id: u32) -> Result<A>;
 
     /// Get the [assignment](Assignmentlike) that corresponds to the given *ID*.
-    fn get_assignment_by_id(&self, id: u32) -> Option<&A> {
-        self.get_assignments().iter().find(|a| a.id() == id)
+    fn get_assignment(&self, id: u32) -> Option<&A> {
+        self.assignments().iter().find(|a| a.id() == id)
     }
 
     /// Get the [assignment](Assignmentlike) that corresponds to the given *ID*.
-    fn get_assignment_by_id_mut(&mut self, id: u32) -> Option<&mut A> {
-        self.get_assignments_mut().iter_mut().find(|a| a.id() == id)
+    fn get_assignment_mut(&mut self, id: u32) -> Option<&mut A> {
+        self.assignments_mut().iter_mut().find(|a| a.id() == id)
     }
 
     /// Get the [class](Classlike) that corresponds to the given *code*.
-    fn get_class_by_code(&self, code: &str) -> Option<&C> {
-        self.get_classes().iter().find(|c| c.code() == code)
+    fn get_class(&self, code: &str) -> Option<&C> {
+        self.classes().iter().find(|c| c.code() == code)
     }
 
     /// Get mutable reference to the [class](Classlike) that corresponds to the given *code*.
-    fn get_class_by_code_mut(&mut self, code: &str) -> Option<&mut C> {
-        self.get_classes_mut().iter_mut().find(|c| c.code() == code)
+    fn get_class_mut(&mut self, code: &str) -> Option<&mut C> {
+        self.classes_mut().iter_mut().find(|c| c.code() == code)
     }
 }
 
@@ -128,24 +128,24 @@ where
         }
     }
 
-    fn get_classes(&self) -> &[C] {
+    fn classes(&self) -> &[C] {
         &self.classes
     }
 
-    fn get_classes_mut(&mut self) -> &mut [C] {
+    fn classes_mut(&mut self) -> &mut [C] {
         &mut self.classes
     }
 
-    fn get_assignments(&self) -> &[A] {
+    fn assignments(&self) -> &[A] {
         &self.assignments
     }
 
-    fn get_assignments_mut(&mut self) -> &mut [A] {
+    fn assignments_mut(&mut self) -> &mut [A] {
         &mut self.assignments
     }
 
     fn add_class(&mut self, class: C) -> Result<()> {
-        if self.get_classes().iter().any(|c| c.code() == class.code()) {
+        if self.classes().iter().any(|c| c.code() == class.code()) {
             bail!(ClassCodeTaken(
                 self.name().to_owned(),
                 class.code().to_owned()
@@ -160,7 +160,7 @@ where
     }
 
     fn remove_class(&mut self, code: &str) -> Result<C> {
-        let Some(index) = self.get_classes().iter().position(|c| c.code() == code) else {
+        let Some(index) = self.classes().iter().position(|c| c.code() == code) else {
             bail!( ClassCodeTaken(
                 self.name().to_owned(),
                 code.to_owned()
@@ -184,7 +184,7 @@ where
     }
 
     fn add_assignment(&mut self, code: &str, assign: A) -> Result<()> {
-        if self.get_assignments().iter().any(|a| a.id() == assign.id()) {
+        if self.assignments().iter().any(|a| a.id() == assign.id()) {
             bail!(AssignmentIdTaken(self.name().to_owned(), assign.id()));
         }
 
@@ -204,7 +204,7 @@ where
         }
 
         // ensure total value within class is less than 100
-        match self.get_class_by_code_mut(code) {
+        match self.get_class_mut(code) {
             None => {
                 bail!(ClassCodeNone(self.name().to_owned(), code.to_owned()));
             }
@@ -224,7 +224,7 @@ where
     }
 
     fn remove_assignment(&mut self, assign_id: u32) -> Result<A> {
-        let Some(index) = self.get_assignments().iter().position(|a| a.id() == assign_id) else {
+        let Some(index) = self.assignments().iter().position(|a| a.id() == assign_id) else {
             bail!( AssignmentIdNone(self.name().to_owned(), assign_id));
         };
 

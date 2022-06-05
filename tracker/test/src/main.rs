@@ -58,11 +58,11 @@ fn tracker() -> Result<()> {
     }
 
     // EDIT ASSIGNMENTS
-    t.get_assignment_by_id_mut(1)
+    t.get_assignment_mut(1)
         .unwrap()
         .set_mark(Mark::percent(75.0)?)?;
 
-    t.get_assignment_by_id_mut(2)
+    t.get_assignment_mut(2)
         .unwrap()
         .set_due_date(NaiveDate::from_ymd(2022, 5, 1).and_hms(23, 59, 59));
 
