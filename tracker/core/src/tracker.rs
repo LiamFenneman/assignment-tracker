@@ -49,6 +49,14 @@ where
     #[must_use]
     fn assignments_mut(&mut self) -> &mut [A];
 
+    /// Get all the assignments within the [tracker](Trackerlike) that belong to a [class](Classlike) with the provided `code`.
+    #[must_use]
+    fn assignments_from_class(&self, code: &str) -> Vec<&A>;
+
+    /// Get all the assignments within the [tracker](Trackerlike) that belong to a [class](Classlike) with the provided `code`.
+    #[must_use]
+    fn assignments_from_class_mut(&mut self, code: &str) -> Vec<&mut A>;
+
     /// Add a [class](Classlike) to the [tracker](Trackerlike).
     ///
     /// # Errors
@@ -142,6 +150,32 @@ where
 
     fn assignments_mut(&mut self) -> &mut [A] {
         &mut self.assignments
+    }
+
+    fn assignments_from_class(&self, code: &str) -> Vec<&A> {
+        let ids = self
+            .map
+            .iter()
+            .filter(|(_, c)| *c == code)
+            .map(|(id, _)| *id)
+            .collect::<Vec<_>>();
+        self.assignments
+            .iter()
+            .filter(|a| ids.contains(&a.id()))
+            .collect::<Vec<_>>()
+    }
+
+    fn assignments_from_class_mut(&mut self, code: &str) -> Vec<&mut A> {
+        let ids = self
+            .map
+            .iter()
+            .filter(|(_, c)| *c == code)
+            .map(|(id, _)| *id)
+            .collect::<Vec<_>>();
+        self.assignments
+            .iter_mut()
+            .filter(|a| ids.contains(&a.id()))
+            .collect::<Vec<_>>()
     }
 
     fn add_class(&mut self, class: C) -> Result<()> {
@@ -311,6 +345,40 @@ mod tests {
 
         // double remove
         assert!(t.remove_class(s).is_err());
+    }
+
+    mod assignment_from_class {
+        use super::*;
+
+        fn setup(a: u32, b: u32) -> Tracker<Code> {
+            let mut t = Tracker::<Code>::default();
+            assert!(t.add_class(Code::new("CLASS A")).is_ok());
+            assert!(t.add_class(Code::new("CLASS B")).is_ok());
+            let gen = |a, b: u32| Assignment::new(a, &format!("A{}", b), 10.0);
+            for i in 0..a {
+                assert!(t.add_assignment("CLASS A", gen(i, i)).is_ok());
+            }
+            for i in 0..b {
+                assert!(t.add_assignment("CLASS B", gen(i + a, i)).is_ok());
+            }
+            t
+        }
+
+        #[rstest]
+        #[case(0, 0)]
+        #[case(1, 0)]
+        #[case(2, 3)]
+        #[case(4, 4)]
+        #[case(5, 7)]
+        fn ok(#[case] a: u32, #[case] b: u32) {
+            let t = setup(a, b);
+
+            let va = t.assignments_from_class("CLASS A");
+            assert_eq!(va.len(), a as usize);
+
+            let vb = t.assignments_from_class("CLASS B");
+            assert_eq!(vb.len(), b as usize);
+        }
     }
 
     mod add_assignment {
