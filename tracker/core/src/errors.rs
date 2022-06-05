@@ -1,3 +1,4 @@
+use crate::assignment::Status;
 use thiserror::Error;
 
 /// The value contained in the [mark](crate::prelude::Mark) is invalid.
@@ -14,6 +15,17 @@ pub enum InvalidMarkError {
     OutOf(u32, u32),
 }
 
+/// The status is invalid.
+#[derive(Error, Debug)]
+pub enum InvalidStatusError {
+    /// [Status](crate::prelude::Status) should be [`Marked`](crate::prelude::Status::Incomplete) when the [assignment mark](crate::prelude::Assignmentlike::mark) is set.
+    #[error("{0} -> assignment mark is set, status should be set to Marked")]
+    NotMarked(Status),
+    /// [Status](crate::prelude::Status) should not be [`Marked`](crate::prelude::Status::Incomplete) when the [assignment mark](crate::prelude::Assignmentlike::mark) is `None`.
+    #[error("{0} -> assignment mark is None, status should not be set to Marked")]
+    Marked(Status),
+}
+
 /// The [assingment](crate::prelude::Assignment) is invalid.
 #[derive(Error, Debug)]
 pub enum InvalidAssignmentError {
@@ -23,6 +35,9 @@ pub enum InvalidAssignmentError {
     /// The `mark` is invalid.
     #[error("{0} -> {1}")]
     Mark(String, InvalidMarkError),
+    /// The `status` is invalid.
+    #[error("{0} -> {1}")]
+    Status(String, InvalidStatusError),
 }
 
 /// The [tracker](crate::prelude::Trackerlike) is invalid.

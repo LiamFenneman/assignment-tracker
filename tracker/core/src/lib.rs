@@ -58,7 +58,7 @@
 //! let mut assign = Assignment::new(0, "Assignment 1");
 //!
 //! // can be updated later
-//! assign.set_value(25.0);
+//! assign.set_value(25.0)?;
 //! assign.set_mark(Mark::percent(75.0)?)?;
 //! assign.set_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
 //! # Ok(()) }
@@ -72,10 +72,10 @@
 //! use tracker_core::prelude::*;
 //! # fn main() -> Result<()> {
 //!
-//! let mut assign = Assignment::new(0, "Assignment 1")
-//!    .with_value(25.0)?
-//!    .with_mark(Mark::percent(75.0)?)?
-//!    .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
+//! let assign = Assignment::new(0, "Assignment 1")
+//!     .with_value(25.0)?
+//!     .with_mark(Mark::percent(75.0)?)?
+//!     .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30))
 //! # Ok(()) }
 //! ```
 #![warn(clippy::pedantic)]

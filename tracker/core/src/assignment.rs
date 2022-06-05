@@ -4,11 +4,12 @@ mod status;
 pub use mark::Mark;
 pub use status::Status;
 
-use crate::errors::InvalidAssignmentError;
-use anyhow::Result;
+use crate::errors::{InvalidAssignmentError, InvalidStatusError};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
+
+type AssignmentResult<T> = Result<T, InvalidAssignmentError>;
 
 /// Generic representation of an assignment.
 pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
@@ -24,7 +25,10 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     fn value(&self) -> Option<f64>;
 
     /// Set the value of the [assignment](Assignmentlike).
-    fn set_value(&mut self, value: f64);
+    ///
+    /// # Errors
+    /// - `value` is **not** within the range `0.0..=100.0`
+    fn set_value(&mut self, value: f64) -> AssignmentResult<()>;
 
     /// Set the value of the [assignment](Assignmentlike) to `None`.
     fn remove_value(&mut self);
@@ -36,7 +40,7 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     ///
     /// # Errors
     /// - `mark` is invalid. See [`Mark::check_valid()`]
-    fn set_mark(&mut self, mark: Mark) -> Result<()>;
+    fn set_mark(&mut self, mark: Mark) -> AssignmentResult<()>;
 
     /// Set the mark of the [assignment](Assignmentlike) to `None`.
     fn remove_mark(&mut self);
@@ -51,13 +55,14 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     fn remove_due_date(&mut self);
 
     /// The status of the [assignment](Assignmentlike).
-    fn status(&self) -> Option<Status>;
+    fn status(&self) -> Status;
 
     /// Set the status of the [assignment](Assignmentlike).
-    fn set_status(&mut self, status: Status);
-
-    /// Set the status of the [assignment](Assignmentlike) to `None`.
-    fn remove_status(&mut self);
+    ///
+    /// # Errors
+    /// - `status` is **not** [`Marked`](crate::prelude::Status::Marked) when `mark` is set.
+    /// - `status` **is** [`Marked`](crate::prelude::Status::Marked) when `mark` is `None`.
+    fn set_status(&mut self, status: Status) -> AssignmentResult<()>;
 }
 
 /// Basic implementation of [Assignmentlike].
@@ -68,7 +73,7 @@ pub struct Assignment {
     value: Option<f64>,
     mark: Option<Mark>,
     due_date: Option<NaiveDateTime>,
-    status: Option<Status>,
+    status: Status,
 }
 
 impl Assignmentlike for Assignment {
@@ -84,9 +89,14 @@ impl Assignmentlike for Assignment {
         self.value
     }
 
-    fn set_value(&mut self, value: f64) {
+    fn set_value(&mut self, value: f64) -> AssignmentResult<()> {
+        // if value not in range [0, 100]
+        if !(0.0..=100.0).contains(&value) {
+            return Err(InvalidAssignmentError::Value(self.name.clone(), value));
+        }
         trace!("{self} -> Set value -> {value:?}");
         self.value = Some(value);
+        Ok(())
     }
 
     fn remove_value(&mut self) {
@@ -98,16 +108,21 @@ impl Assignmentlike for Assignment {
         self.mark
     }
 
-    fn set_mark(&mut self, mark: Mark) -> Result<()> {
-        mark.check_valid()?;
+    fn set_mark(&mut self, mark: Mark) -> AssignmentResult<()> {
+        if let Err(e) = mark.check_valid() {
+            return Err(InvalidAssignmentError::Mark(self.name.clone(), e));
+        }
         trace!("{self} -> Set mark -> {mark:?}");
         self.mark = Some(mark);
+        self.set_status(Status::Marked)?;
         Ok(())
     }
 
     fn remove_mark(&mut self) {
         trace!("{self} -> Set mark -> None");
         self.mark = None;
+        self.set_status(Status::Incomplete)
+            .expect("Failed to set status to Incomplete");
     }
 
     fn due_date(&self) -> Option<NaiveDateTime> {
@@ -124,18 +139,26 @@ impl Assignmentlike for Assignment {
         self.due_date = None;
     }
 
-    fn status(&self) -> Option<Status> {
+    fn status(&self) -> Status {
         self.status
     }
 
-    fn set_status(&mut self, status: Status) {
-        trace!("{self} -> Set status -> {status:?}");
-        self.status = Some(status);
-    }
-
-    fn remove_status(&mut self) {
-        trace!("{self} -> Set status -> None");
-        self.status = None;
+    fn set_status(&mut self, status: Status) -> AssignmentResult<()> {
+        match self.mark() {
+            Some(_) if status != Status::Marked => Err(InvalidAssignmentError::Status(
+                self.name.clone(),
+                InvalidStatusError::NotMarked(status),
+            )),
+            None if status == Status::Marked => Err(InvalidAssignmentError::Status(
+                self.name.clone(),
+                InvalidStatusError::Marked(status),
+            )),
+            _ => {
+                trace!("{self} -> Set status -> {status:?}");
+                self.status = status;
+                Ok(())
+            }
+        }
     }
 }
 
@@ -177,7 +200,7 @@ impl Assignment {
             value: None,
             mark: None,
             due_date: None,
-            status: None,
+            status: Status::default(),
         }
     }
 
@@ -194,19 +217,15 @@ impl Assignment {
     ///     .with_value(50.0)?;
     /// # Ok(()) }
     /// ```
-    pub fn with_value(mut self, value: f64) -> Result<Self, InvalidAssignmentError> {
-        // if value not in range [0, 100]
-        if !(0.0..=100.0).contains(&value) {
-            return Err(InvalidAssignmentError::Value(self.name, value));
-        }
-        self.value = Some(value);
+    pub fn with_value(mut self, value: f64) -> AssignmentResult<Self> {
+        self.set_value(value)?;
         Ok(self)
     }
 
     /// Add a mark to the [assignment](Assignment).
     ///
     /// # Errors
-    /// - `mark` is invalid. See [`Mark::check_valid()`]
+    /// - `mark` is invalid. See [`Mark::check_valid`].
     ///
     /// # Examples
     /// ```
@@ -216,11 +235,9 @@ impl Assignment {
     ///     .with_mark(Mark::Percent(75.0))?;
     /// # Ok(()) }
     /// ```
-    pub fn with_mark(mut self, mark: Mark) -> Result<Self, InvalidAssignmentError> {
-        if let Err(e) = mark.check_valid() {
-            return Err(InvalidAssignmentError::Mark(self.name, e));
-        }
-        self.mark = Some(mark);
+    pub fn with_mark(mut self, mark: Mark) -> AssignmentResult<Self> {
+        self.set_mark(mark)?;
+        self.set_status(Status::Marked)?;
         Ok(self)
     }
 
@@ -241,16 +258,19 @@ impl Assignment {
 
     /// Add a status to the [assignment](Assignment).
     ///
+    /// # Errors
+    /// - `status` is **not** [`Marked`](crate::prelude::Status::Marked) when `mark` is set.
+    /// - `status` **is** [`Marked`](crate::prelude::Status::Marked) when `mark` is `None`.
+    ///
     /// # Examples
     /// ```
     /// # use tracker_core::prelude::*;
     /// let mut assign = Assignment::new(10, "Test 1")
     ///    .with_status(Status::Complete);
     /// ```
-    #[must_use]
-    pub fn with_status(mut self, status: Status) -> Self {
-        self.status = Some(status);
-        self
+    pub fn with_status(mut self, status: Status) -> AssignmentResult<Self> {
+        self.set_status(status)?;
+        Ok(self)
     }
 }
 
@@ -264,6 +284,29 @@ impl Display for Assignment {
 mod tests {
     use super::*;
     use rstest::rstest;
+
+    mod set_value {
+        use super::*;
+
+        #[rstest]
+        #[case(0.0)]
+        #[case(100.0)]
+        #[case(50.0)]
+        fn ok(#[case] value: f64) {
+            let mut assign = Assignment::default();
+            assert!(assign.set_value(value).is_ok());
+            assert!(Assignment::default().with_value(value).is_ok());
+        }
+
+        #[rstest]
+        #[case(101.0)]
+        #[case(-1.0)]
+        fn err(#[case] value: f64) {
+            let mut assign = Assignment::default();
+            assert!(assign.set_value(value).is_err());
+            assert!(Assignment::default().with_value(value).is_err());
+        }
+    }
 
     mod set_mark {
         use super::*;
@@ -280,8 +323,8 @@ mod tests {
         #[case(Mark::OutOf(15, 25))]
         fn ok(#[case] mark: Mark) {
             let mut a = Assignment::default();
-            let r = a.set_mark(mark);
-            assert!(r.is_ok(), "{mark:?}");
+            assert!(a.set_mark(mark).is_ok(), "{mark:?}");
+            assert!(Assignment::default().with_mark(mark).is_ok());
         }
 
         #[rstest]
@@ -295,8 +338,37 @@ mod tests {
         #[case(Mark::OutOf(15, 12))]
         fn err(#[case] mark: Mark) {
             let mut a = Assignment::default();
-            let r = a.set_mark(mark);
-            assert!(r.is_err(), "{mark:?}");
+            assert!(a.set_mark(mark).is_err(), "{mark:?}");
+            assert!(Assignment::default().with_mark(mark).is_err());
+        }
+    }
+
+    mod set_status {
+        use super::*;
+
+        #[rstest]
+        #[case(Some(Mark::Percent(0.0)), Status::Marked)]
+        #[case(Some(Mark::Percent(55.0)), Status::Marked)]
+        #[case(None, Status::Incomplete)]
+        #[case(None, Status::Complete)]
+        fn ok(#[case] mark: Option<Mark>, #[case] status: Status) {
+            let mut assign = match mark {
+                Some(mark) => Assignment::default().with_mark(mark).unwrap(),
+                None => Assignment::default(),
+            };
+            assert!(assign.set_status(status).is_ok());
+        }
+
+        #[rstest]
+        #[case(Some(Mark::Percent(0.0)), Status::Incomplete)]
+        #[case(Some(Mark::Percent(55.55)), Status::Complete)]
+        #[case(None, Status::Marked)]
+        fn err(#[case] mark: Option<Mark>, #[case] status: Status) {
+            let mut assign = match mark {
+                Some(mark) => Assignment::default().with_mark(mark).unwrap(),
+                None => Assignment::default(),
+            };
+            assert!(assign.set_status(status).is_err());
         }
     }
 }
