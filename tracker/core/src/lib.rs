@@ -20,7 +20,7 @@
 //! // create and add assignments
 //! let a1 = Assignment::new(0, "Assignment 1");
 //! let a2 = Assignment::new(1, "Assignment 2")
-//!     .with_value(25.0)
+//!     .with_value(25.0)?
 //!     .with_mark(Mark::Percent(75.0))?
 //!     .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
 //! tracker.add_assignment("CLASS 101", a1)?;
@@ -73,7 +73,7 @@
 //! # fn main() -> Result<()> {
 //!
 //! let mut assign = Assignment::new(0, "Assignment 1")
-//!    .with_value(25.0)
+//!    .with_value(25.0)?
 //!    .with_mark(Mark::percent(75.0)?)?
 //!    .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
 //! # Ok(()) }
@@ -95,7 +95,8 @@ pub mod tracker;
 pub use tracker::Tracker;
 
 pub mod prelude {
-    pub use crate::assignment::mark::Mark;
+    pub use crate::assignment::Mark;
+    pub use crate::assignment::Status;
 
     pub use crate::class::Class;
     pub use crate::class::Classlike;

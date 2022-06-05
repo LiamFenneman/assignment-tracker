@@ -14,6 +14,17 @@ pub enum InvalidMarkError {
     OutOfTupleEquality(u32, u32),
 }
 
+/// The [assingment](crate::prelude::Assignment) is invalid.
+#[derive(Error, Debug)]
+pub enum InvalidAssignmentError {
+    /// The `value` is invalid.
+    #[error("{0} -> value ({1}) must be within range 0.0..=100.0")]
+    Value(String, f64),
+    /// The `mark` is invalid.
+    #[error("{0} -> {1}")]
+    Mark(String, InvalidMarkError),
+}
+
 /// The [tracker](crate::prelude::Trackerlike) is invalid.
 #[derive(Error, Debug)]
 pub enum InvalidTrackerError {

@@ -65,7 +65,9 @@ fn tracker() -> Result<()> {
 fn gen(a: u32, b: u32, max_v: f64) -> Assignment {
     let mut rng = thread_rng();
     let v = rng.gen_range(0.0..=max_v).round();
-    Assignment::new(a, &format!("Assign {b}")).with_value(v)
+    Assignment::new(a, &format!("Assign {b}"))
+        .with_value(v)
+        .unwrap()
 }
 
 fn main() -> Result<()> {

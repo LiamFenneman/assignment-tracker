@@ -415,10 +415,10 @@ mod tests {
                 assert!(t.add_class(Code::default()).is_ok());
                 let code = "DEFAULT";
                 assert!(t
-                    .add_assignment(code, Assignment::new(0, "Test 1").with_value(a1))
+                    .add_assignment(code, Assignment::new(0, "Test 1").with_value(a1).unwrap())
                     .is_ok());
                 assert!(t
-                    .add_assignment(code, Assignment::new(1, "Test 2").with_value(a2))
+                    .add_assignment(code, Assignment::new(1, "Test 2").with_value(a2).unwrap())
                     .is_ok());
             }
 
@@ -432,10 +432,10 @@ mod tests {
                 assert!(t.add_class(Code::default()).is_ok());
                 let code = "DEFAULT";
                 assert!(t
-                    .add_assignment(code, Assignment::new(0, "Test 1").with_value(a1))
+                    .add_assignment(code, Assignment::new(0, "Test 1").with_value(a1).unwrap())
                     .is_ok());
                 assert!(t
-                    .add_assignment(code, Assignment::new(1, "Test 2").with_value(a2))
+                    .add_assignment(code, Assignment::new(1, "Test 2").with_value(a2).unwrap())
                     .is_err());
             }
         }

@@ -1,7 +1,10 @@
-pub mod mark;
-pub use mark::Mark;
+mod mark;
+mod status;
 
-use crate::errors::InvalidMarkError;
+pub use mark::Mark;
+pub use status::Status;
+
+use crate::errors::InvalidAssignmentError;
 use anyhow::Result;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
@@ -20,17 +23,14 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     /// Represents how much the [assignment](Assignmentlike) is worth (by percentage) in relation to the other [assignments](Assignmentlike) in the [class](crate::prelude::Classlike).
     fn value(&self) -> Option<f64>;
 
-    /// The mark given for the [assignment](Assignmentlike).
-    fn mark(&self) -> Option<Mark>;
-
-    /// The due date of the [assignment](Assignmentlike).
-    fn due_date(&self) -> Option<NaiveDateTime>;
-
     /// Set the value of the [assignment](Assignmentlike).
     fn set_value(&mut self, value: f64);
 
     /// Set the value of the [assignment](Assignmentlike) to `None`.
     fn remove_value(&mut self);
+
+    /// The mark given for the [assignment](Assignmentlike).
+    fn mark(&self) -> Option<Mark>;
 
     /// Set the mark of the [assignment](Assignmentlike) to a new value.
     ///
@@ -41,11 +41,23 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     /// Set the mark of the [assignment](Assignmentlike) to `None`.
     fn remove_mark(&mut self);
 
+    /// The due date of the [assignment](Assignmentlike).
+    fn due_date(&self) -> Option<NaiveDateTime>;
+
     /// Set the due date of the [assignment](Assignmentlike).
     fn set_due_date(&mut self, due_date: NaiveDateTime);
 
     /// Set the due date of the [assignment](Assignmentlike) to `None`.
     fn remove_due_date(&mut self);
+
+    /// The status of the [assignment](Assignmentlike).
+    fn status(&self) -> Option<Status>;
+
+    /// Set the status of the [assignment](Assignmentlike).
+    fn set_status(&mut self, status: Status);
+
+    /// Set the status of the [assignment](Assignmentlike) to `None`.
+    fn remove_status(&mut self);
 }
 
 /// Basic implementation of [Assignmentlike].
@@ -56,6 +68,7 @@ pub struct Assignment {
     value: Option<f64>,
     mark: Option<Mark>,
     due_date: Option<NaiveDateTime>,
+    status: Option<Status>,
 }
 
 impl Assignmentlike for Assignment {
@@ -71,14 +84,6 @@ impl Assignmentlike for Assignment {
         self.value
     }
 
-    fn mark(&self) -> Option<Mark> {
-        self.mark
-    }
-
-    fn due_date(&self) -> Option<NaiveDateTime> {
-        self.due_date
-    }
-
     fn set_value(&mut self, value: f64) {
         trace!("{self} -> Set value -> {value:?}");
         self.value = Some(value);
@@ -87,6 +92,10 @@ impl Assignmentlike for Assignment {
     fn remove_value(&mut self) {
         trace!("{self} -> Set mark -> None");
         self.value = None;
+    }
+
+    fn mark(&self) -> Option<Mark> {
+        self.mark
     }
 
     fn set_mark(&mut self, mark: Mark) -> Result<()> {
@@ -101,6 +110,10 @@ impl Assignmentlike for Assignment {
         self.mark = None;
     }
 
+    fn due_date(&self) -> Option<NaiveDateTime> {
+        self.due_date
+    }
+
     fn set_due_date(&mut self, due_date: NaiveDateTime) {
         trace!("{self} -> Set due date -> {due_date:?}");
         self.due_date = Some(due_date);
@@ -109,6 +122,20 @@ impl Assignmentlike for Assignment {
     fn remove_due_date(&mut self) {
         trace!("{self} -> Set due date -> None");
         self.due_date = None;
+    }
+
+    fn status(&self) -> Option<Status> {
+        self.status
+    }
+
+    fn set_status(&mut self, status: Status) {
+        trace!("{self} -> Set status -> {status:?}");
+        self.status = Some(status);
+    }
+
+    fn remove_status(&mut self) {
+        trace!("{self} -> Set status -> None");
+        self.status = None;
     }
 }
 
@@ -125,22 +152,22 @@ impl Assignment {
     /// ```
     /// # use tracker_core::prelude::*;
     /// # use chrono::NaiveDate;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let assign = Assignment::new(0, "Test 1");
     ///
     /// let assign = Assignment::new(0, "Test 1")
-    ///     .with_value(25.0)
-    ///     .with_mark(Mark::Letter('A'))
-    ///     .expect("Invalid mark");
+    ///     .with_value(25.0)?
+    ///     .with_mark(Mark::Letter('A'))?;
     ///
     /// let assign = Assignment::new(0, "Test 1")
-    ///     .with_value(25.0)
+    ///     .with_value(25.0)?
     ///     .with_due_date(NaiveDate::from_ymd(2022, 1, 1).and_hms(12, 0, 0));
     ///
     /// let assign = Assignment::new(0, "Test 1")
-    ///     .with_value(25.0)
-    ///     .with_mark(Mark::Letter('A'))
-    ///     .expect("Invalid mark")
+    ///     .with_value(25.0)?
+    ///     .with_mark(Mark::Letter('A'))?
     ///     .with_due_date(NaiveDate::from_ymd(2022, 1, 1).and_hms(12, 0, 0));
+    /// # Ok(()) }
     /// ```
     #[must_use]
     pub fn new(id: u32, name: &str) -> Self {
@@ -150,21 +177,30 @@ impl Assignment {
             value: None,
             mark: None,
             due_date: None,
+            status: None,
         }
     }
 
     /// Add a value to the [assignment](Assignment).
     ///
+    /// # Errors
+    /// - `value` not within range of 0.0 to 100.0.
+    ///
     /// # Examples
     /// ```
     /// # use tracker_core::prelude::*;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let mut assign = Assignment::new(10, "Test 1")
-    ///     .with_value(50.0);
+    ///     .with_value(50.0)?;
+    /// # Ok(()) }
     /// ```
-    #[must_use]
-    pub fn with_value(mut self, value: f64) -> Self {
+    pub fn with_value(mut self, value: f64) -> Result<Self, InvalidAssignmentError> {
+        // if value not in range [0, 100]
+        if !(0.0..=100.0).contains(&value) {
+            return Err(InvalidAssignmentError::Value(self.name, value));
+        }
         self.value = Some(value);
-        self
+        Ok(self)
     }
 
     /// Add a mark to the [assignment](Assignment).
@@ -175,12 +211,14 @@ impl Assignment {
     /// # Examples
     /// ```
     /// # use tracker_core::prelude::*;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let mut assign = Assignment::new(10, "Test 1")
-    ///     .with_mark(Mark::Percent(75.0));
+    ///     .with_mark(Mark::Percent(75.0))?;
+    /// # Ok(()) }
     /// ```
-    pub fn with_mark(mut self, mark: Mark) -> Result<Self, InvalidMarkError> {
+    pub fn with_mark(mut self, mark: Mark) -> Result<Self, InvalidAssignmentError> {
         if let Err(e) = mark.check_valid() {
-            return Err(e);
+            return Err(InvalidAssignmentError::Mark(self.name, e));
         }
         self.mark = Some(mark);
         Ok(self)
@@ -198,6 +236,20 @@ impl Assignment {
     #[must_use]
     pub fn with_due_date(mut self, due_date: NaiveDateTime) -> Self {
         self.due_date = Some(due_date);
+        self
+    }
+
+    /// Add a status to the [assignment](Assignment).
+    ///
+    /// # Examples
+    /// ```
+    /// # use tracker_core::prelude::*;
+    /// let mut assign = Assignment::new(10, "Test 1")
+    ///    .with_status(Status::Complete);
+    /// ```
+    #[must_use]
+    pub fn with_status(mut self, status: Status) -> Self {
+        self.status = Some(status);
         self
     }
 }
