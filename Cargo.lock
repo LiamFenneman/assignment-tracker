@@ -992,9 +992,8 @@ version = "0.1.0"
 
 [[package]]
 name = "tracker_core"
-version = "0.7.0"
+version = "0.8.1"
 dependencies = [
- "anyhow",
  "chrono",
  "log",
  "rstest",

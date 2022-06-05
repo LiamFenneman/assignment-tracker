@@ -1,7 +1,8 @@
-use crate::errors::InvalidClassError;
-use anyhow::Result;
+use crate::errors::ClassError;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
+
+type Result<T> = std::result::Result<T, ClassError>;
 
 /// Generic representation a university/school class/paper/course.
 pub trait Classlike: Display + Debug + PartialEq + PartialOrd {
@@ -85,7 +86,7 @@ impl Classlike for Code {
 
     fn set_total_value(&mut self, value: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&value) {
-            bail!(InvalidClassError::TotalValue(self.name().to_owned(), value));
+            return Err(ClassError::TotalValue(value));
         }
 
         trace!("{self} -> Total value -> {value}");
@@ -141,7 +142,7 @@ impl Classlike for Class {
 
     fn set_total_value(&mut self, value: f64) -> Result<()> {
         if !(0.0..=100.0).contains(&value) {
-            bail!(InvalidClassError::TotalValue(self.name().to_owned(), value));
+            return Err(ClassError::TotalValue(value));
         }
 
         trace!("{self} -> Total value -> {value}");

@@ -5,10 +5,9 @@
 //! ### Tracker
 //! The following shows the flow of creating a tracker that contains classes and assignments.
 //! ```
-//! # use anyhow::Result;
 //! use tracker_core::prelude::*;
 //! use chrono::NaiveDate;
-//! # fn main() -> Result<()> {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
 //! // create a tracker (can use Class or Code)
 //! let mut tracker = Tracker::<Class>::new("My Tracker");
@@ -31,9 +30,8 @@
 //! ### Mark
 //! Use the [`Mark::percent()`](./mark/enum.Mark.html#method.percent), [`Mark::letter()`](./mark/enum.Mark.html#method.letter), [`Mark::out_of()`](./mark/enum.Mark.html#method.out_of) instead of enum variants to ensure the value is valid.
 //! ```
-//! # use anyhow::Result;
 //! use tracker_core::prelude::*;
-//! # fn main() -> Result<()> {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
 //! let mark = Mark::percent(75.0)?;
 //! let mark = Mark::percent(25.0)?;
@@ -50,10 +48,9 @@
 //! ##### New Pattern
 //! Use the following when you are not providing a mark or due date.
 //! ```
-//! # use anyhow::Result;
 //! use chrono::NaiveDate;
 //! use tracker_core::prelude::*;
-//! # fn main() -> Result<()> {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
 //! let mut assign = Assignment::new(0, "Assignment 1");
 //!
@@ -67,15 +64,14 @@
 //! ##### Builder Pattern
 //! Use the following when you are not providing a mark or due date.
 //! ```
-//! # use anyhow::Result;
 //! use chrono::NaiveDate;
 //! use tracker_core::prelude::*;
-//! # fn main() -> Result<()> {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
 //! let assign = Assignment::new(0, "Assignment 1")
 //!     .with_value(25.0)?
 //!     .with_mark(Mark::percent(75.0)?)?
-//!     .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30))
+//!     .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
 //! # Ok(()) }
 //! ```
 #![warn(clippy::pedantic)]
@@ -84,8 +80,6 @@
 
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate anyhow;
 
 pub mod assignment;
 pub mod class;

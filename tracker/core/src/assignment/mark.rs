@@ -1,4 +1,4 @@
-use crate::errors::InvalidMarkError;
+use crate::errors::MarkError;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -76,7 +76,7 @@ pub enum Mark {
     OutOf(u32, u32),
 }
 
-type MarkResult = Result<Mark, InvalidMarkError>;
+type MarkResult = Result<Mark, MarkError>;
 
 impl Mark {
     /// Check if the mark is valid.
@@ -85,16 +85,16 @@ impl Mark {
     /// - [`Mark::Percent`]: value is within range `0.0..=100.0`
     /// - [`Mark::Letter`]: [`char`] must be within range `A..=Z`
     /// - [`Mark::OutOf`]: *X* is less than or equal to *Y*
-    pub fn check_valid(&self) -> Result<(), InvalidMarkError> {
+    pub fn check_valid(&self) -> Result<(), MarkError> {
         match self {
             Self::Percent(pct) if !(0.0..=100.0).contains(pct) => {
                 if (0.0..=0.1).contains(pct) {
                     warn!("Percent range is 0.0 to 100.0 -> Provided value ({pct}) might not be correct.");
                 }
-                Err(InvalidMarkError::Percent(*pct))
+                Err(MarkError::Percent(*pct))
             }
-            Self::Letter(c) if !('A'..='Z').contains(c) => Err(InvalidMarkError::Letter(*c)),
-            Self::OutOf(a, b) if a > b => Err(InvalidMarkError::OutOf(*a, *b)),
+            Self::Letter(c) if !('A'..='Z').contains(c) => Err(MarkError::Letter(*c)),
+            Self::OutOf(a, b) if a > b => Err(MarkError::OutOf(*a, *b)),
             _ => Ok(()),
         }
     }
@@ -114,9 +114,7 @@ impl Mark {
         }
 
         if !(0.0..=100.0).contains(&pct) {
-            let e = InvalidMarkError::Percent(pct);
-            error!("{e}");
-            return Err(e);
+            return Err(MarkError::Percent(pct));
         }
 
         Ok(Self::Percent(pct))
@@ -128,9 +126,7 @@ impl Mark {
     /// - `c` is **not** within range `A..=Z`
     pub fn letter(c: char) -> MarkResult {
         if !('A'..='Z').contains(&c) {
-            let e = InvalidMarkError::Letter(c);
-            error!("{e}");
-            return Err(e);
+            return Err(MarkError::Letter(c));
         }
 
         Ok(Self::Letter(c))
@@ -142,9 +138,7 @@ impl Mark {
     /// - `a` is greater than `b`
     pub fn out_of(a: u32, b: u32) -> MarkResult {
         if a > b {
-            let e = InvalidMarkError::OutOf(a, b);
-            error!("{e}");
-            return Err(e);
+            return Err(MarkError::OutOf(a, b));
         }
 
         Ok(Self::OutOf(a, b))

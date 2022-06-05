@@ -1,11 +1,12 @@
-use crate::errors::InvalidTrackerError;
+use crate::errors::TrackerError;
 use crate::prelude::*;
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
 };
+
+type Result<T> = std::result::Result<T, TrackerError>;
 
 /// Definition of methods required to be able to be a tracker.
 pub trait Trackerlike<'de, C, A>: Serialize + Deserialize<'de>
@@ -177,10 +178,7 @@ where
 
     fn add_class(&mut self, class: C) -> Result<()> {
         if self.classes().iter().any(|c| c.code() == class.code()) {
-            bail!(InvalidTrackerError::CodeTaken(
-                self.name().to_owned(),
-                class.code().to_owned()
-            ));
+            return Err(TrackerError::CodeTaken(class.code().to_owned()));
         }
 
         trace!("{self} -> Add class -> {class:?}");
@@ -192,8 +190,7 @@ where
 
     fn remove_class(&mut self, code: &str) -> Result<C> {
         let Some(index) = self.classes().iter().position(|c| c.code() == code) else {
-            bail!(InvalidTrackerError::CodeTaken(
-                self.name().to_owned(),
+            return Err(TrackerError::CodeTaken(
                 code.to_owned()
             ));
         };
@@ -216,10 +213,7 @@ where
 
     fn add_assignment(&mut self, code: &str, assign: A) -> Result<()> {
         if self.assignments().iter().any(|a| a.id() == assign.id()) {
-            bail!(InvalidTrackerError::IdTaken(
-                self.name().to_owned(),
-                assign.id()
-            ));
+            return Err(TrackerError::IdTaken(assign.id()));
         }
 
         // ensure unique assignment name within a class
@@ -230,20 +224,16 @@ where
             .map(Assignmentlike::id)
             .any(|id| self.map.get(&id).is_some_and(|&s| s == code))
         {
-            bail!(InvalidTrackerError::NameTaken(
-                self.name().to_owned(),
+            return Err(TrackerError::NameTaken(
                 assign.name().to_owned(),
-                code.to_owned()
+                code.to_owned(),
             ));
         }
 
         // ensure total value within class is less than 100
         match self.get_class_mut(code) {
             None => {
-                bail!(InvalidTrackerError::NoClass(
-                    self.name().to_owned(),
-                    code.to_owned()
-                ));
+                return Err(TrackerError::NoClass(code.to_owned()));
             }
             Some(class) => {
                 class.add_total_value(assign.value().unwrap_or(0.0))?;
@@ -262,7 +252,7 @@ where
 
     fn remove_assignment(&mut self, assign_id: u32) -> Result<A> {
         let Some(index) = self.assignments().iter().position(|a| a.id() == assign_id) else {
-            bail!(InvalidTrackerError::NoAssignment(self.name().to_owned(), assign_id));
+            return Err(TrackerError::NoAssignment(assign_id));
         };
 
         // remove the entry in map

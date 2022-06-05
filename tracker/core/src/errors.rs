@@ -1,69 +1,71 @@
-use crate::assignment::Status;
 use thiserror::Error;
 
 /// The value contained in the [mark](crate::prelude::Mark) is invalid.
 #[derive(Error, Debug)]
-pub enum InvalidMarkError {
-    /// [`Percent`](crate::prelude::Mark::Percent) value is outside the valid range
-    #[error("Mark::Percent -> value ({0}) is outside the valid range: 0.0 to 100.0")]
+pub enum MarkError {
+    /// [`Percent`](crate::prelude::Mark::Percent) value is outside the valid range.
+    #[error("value ({0}) is outside the valid range: 0.0 to 100.0")]
     Percent(f64),
-    /// [`Letter`](crate::prelude::Mark::Letter) char is outside the valid range
-    #[error("Mark::Letter -> char ({0}) is outside the valid range: A to Z")]
+    /// [`Letter`](crate::prelude::Mark::Letter) char is outside the valid range.
+    #[error("char ({0}) is outside the valid range: A to Z")]
     Letter(char),
-    /// [`OutOf`](crate::prelude::Mark::OutOf) left value is greater than right value
-    #[error("Mark::OutOf -> left value ({0}) is greater than right value ({1})")]
+    /// [`OutOf`](crate::prelude::Mark::OutOf) left value is greater than right value.
+    #[error("left value ({0}) is greater than right value ({1})")]
     OutOf(u32, u32),
 }
 
 /// The status is invalid.
 #[derive(Error, Debug)]
-pub enum InvalidStatusError {
+pub enum StatusError {
     /// [Status](crate::prelude::Status) should be [`Marked`](crate::prelude::Status::Incomplete) when the [assignment mark](crate::prelude::Assignmentlike::mark) is set.
-    #[error("{0} -> assignment mark is set, status should be set to Marked")]
-    NotMarked(Status),
+    #[error("assignment mark is set, status should be set to Marked")]
+    NotMarked,
     /// [Status](crate::prelude::Status) should not be [`Marked`](crate::prelude::Status::Incomplete) when the [assignment mark](crate::prelude::Assignmentlike::mark) is `None`.
-    #[error("{0} -> assignment mark is None, status should not be set to Marked")]
-    Marked(Status),
+    #[error("assignment mark is None, status should not be set to Marked")]
+    Marked,
 }
 
 /// The [assingment](crate::prelude::Assignment) is invalid.
 #[derive(Error, Debug)]
-pub enum InvalidAssignmentError {
+pub enum AssignmentError {
     /// The `value` is invalid.
-    #[error("{0} -> value ({1}) must be within range 0.0..=100.0")]
-    Value(String, f64),
+    #[error("value ({0}) must be within range 0.0 to 100.0")]
+    Value(f64),
     /// The `mark` is invalid.
-    #[error("{0} -> {1}")]
-    Mark(String, InvalidMarkError),
+    #[error("mark is invalid: {0}")]
+    Mark(#[from] MarkError),
     /// The `status` is invalid.
-    #[error("{0} -> {1}")]
-    Status(String, InvalidStatusError),
+    #[error("status is invalid: {0}")]
+    Status(#[from] StatusError),
 }
 
 /// The [tracker](crate::prelude::Trackerlike) is invalid.
 #[derive(Error, Debug)]
-pub enum InvalidTrackerError {
+pub enum TrackerError {
     /// Class code is already taken by another class.
-    #[error("{0} -> Class code ({1}) already exists")]
-    CodeTaken(String, String),
+    #[error("class code ({0}) already exists")]
+    CodeTaken(String),
     /// Class code doesn't exist.
-    #[error("{0} -> Could not find a class with code: {1}")]
-    NoClass(String, String),
+    #[error("could not find a class with code: {0}")]
+    NoClass(String),
     /// Assignment ID is already taken by another assignment.
-    #[error("{0} -> Assignment ID ({1}) already exists")]
-    IdTaken(String, u32),
+    #[error("assignment ID ({0}) already exists")]
+    IdTaken(u32),
     /// Assignment ID doesn't exist.
-    #[error("{0} -> Could not find a assignment with ID: {1}")]
-    NoAssignment(String, u32),
+    #[error("could not find a assignment with ID: {0}")]
+    NoAssignment(u32),
     /// Assignment name is already taken by another assignment within the class.
-    #[error("{0} -> Assignment name ({1}) already taken for {2}")]
-    NameTaken(String, String, String),
+    #[error("assignment name ({0}) already taken for {1}")]
+    NameTaken(String, String),
+    /// Invalid class.
+    #[error("invalid class: {0}")]
+    Class(#[from] ClassError),
 }
 
 /// The [class](crate::prelude::Classlike) is invalid.
 #[derive(Error, Debug)]
-pub enum InvalidClassError {
+pub enum ClassError {
     /// The total value of all assignments must be within `0.0..=100.0`
-    #[error("{0} -> Total value ({1}) must be within 0.0..=100.0")]
-    TotalValue(String, f64),
+    #[error("total value ({0}) must be within 0.0 to 100.0")]
+    TotalValue(f64),
 }
