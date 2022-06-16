@@ -1,6 +1,6 @@
 use anyhow::Result;
-use chrono::NaiveDate;
 use rand::{thread_rng, Rng};
+use time::macros::date;
 use tracker_core::prelude::*;
 
 fn invalid_marks() {
@@ -18,7 +18,7 @@ fn assignment() -> Result<()> {
     a.set_mark(Mark::percent(75.0)?)?;
     a.set_mark(Mark::letter('A')?)?;
     a.set_mark(Mark::out_of(22, 25)?)?;
-    a.set_due_date(NaiveDate::from_ymd(2022, 5, 1).and_hms(23, 59, 0));
+    a.set_due_date(date!(2022 - 01 - 01));
     Ok(())
 }
 
@@ -46,7 +46,7 @@ fn tracker() -> Result<()> {
 
     t.get_assignment_mut(2)
         .unwrap()
-        .set_due_date(NaiveDate::from_ymd(2022, 5, 1).and_hms(23, 59, 59));
+        .set_due_date(date!(2022 - 01 - 01));
 
     // REMOVE ASSIGNMENTS
     t.remove_assignment(1)?;

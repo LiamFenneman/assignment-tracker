@@ -5,8 +5,8 @@
 //! ### Tracker
 //! The following shows the flow of creating a tracker that contains classes and assignments.
 //! ```
+//! # use time::macros::date;
 //! use tracker_core::prelude::*;
-//! use chrono::NaiveDate;
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
 //! // create a tracker (can use Class or Code)
@@ -21,7 +21,7 @@
 //! let a2 = Assignment::new(1, "Assignment 2")
 //!     .with_value(25.0)?
 //!     .with_mark(Mark::Percent(75.0))?
-//!     .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
+//!     .with_due_date(date!(2022-01-01));
 //! tracker.add_assignment("CLASS 101", a1)?;
 //! tracker.add_assignment("CLASS 101", a2)?;
 //! # Ok(()) }
@@ -48,7 +48,7 @@
 //! ##### New Pattern
 //! Use the following when you are not providing a mark or due date.
 //! ```
-//! use chrono::NaiveDate;
+//! # use time::macros::date;
 //! use tracker_core::prelude::*;
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
@@ -57,21 +57,21 @@
 //! // can be updated later
 //! assign.set_value(25.0)?;
 //! assign.set_mark(Mark::percent(75.0)?)?;
-//! assign.set_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
+//! assign.set_due_date(date!(2022-01-01));
 //! # Ok(()) }
 //! ```
 //!
 //! ##### Builder Pattern
 //! Use the following when you are not providing a mark or due date.
 //! ```
-//! use chrono::NaiveDate;
+//! # use time::macros::date;
 //! use tracker_core::prelude::*;
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
 //! let assign = Assignment::new(0, "Assignment 1")
 //!     .with_value(25.0)?
 //!     .with_mark(Mark::percent(75.0)?)?
-//!     .with_due_date(NaiveDate::from_ymd(2022, 12, 25).and_hms(12, 45, 30));
+//!     .with_due_date(date!(2022-01-01));
 //! # Ok(()) }
 //! ```
 #![warn(clippy::pedantic)]

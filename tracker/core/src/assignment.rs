@@ -3,9 +3,9 @@ mod status;
 
 pub use mark::Mark;
 pub use status::Status;
+use time::Date;
 
 use crate::errors::{AssignmentError, StatusError};
-use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 
@@ -46,10 +46,10 @@ pub trait Assignmentlike: Display + Debug + PartialEq + PartialOrd {
     fn remove_mark(&mut self);
 
     /// The due date of the [assignment](Assignmentlike).
-    fn due_date(&self) -> Option<NaiveDateTime>;
+    fn due_date(&self) -> Option<Date>;
 
     /// Set the due date of the [assignment](Assignmentlike).
-    fn set_due_date(&mut self, due_date: NaiveDateTime);
+    fn set_due_date(&mut self, due_date: Date);
 
     /// Set the due date of the [assignment](Assignmentlike) to `None`.
     fn remove_due_date(&mut self);
@@ -72,7 +72,7 @@ pub struct Assignment {
     name: String,
     value: Option<f64>,
     mark: Option<Mark>,
-    due_date: Option<NaiveDateTime>,
+    due_date: Option<Date>,
     status: Status,
 }
 
@@ -125,11 +125,11 @@ impl Assignmentlike for Assignment {
             .expect("Failed to set status to Incomplete");
     }
 
-    fn due_date(&self) -> Option<NaiveDateTime> {
+    fn due_date(&self) -> Option<Date> {
         self.due_date
     }
 
-    fn set_due_date(&mut self, due_date: NaiveDateTime) {
+    fn set_due_date(&mut self, due_date: Date) {
         trace!("{self} -> Set due date -> {due_date:?}");
         self.due_date = Some(due_date);
     }
@@ -167,8 +167,8 @@ impl Assignment {
     ///
     /// # Examples
     /// ```
+    /// # use time::macros::date;
     /// # use tracker_core::prelude::*;
-    /// # use chrono::NaiveDate;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let assign = Assignment::new(0, "Test 1");
     ///
@@ -178,12 +178,12 @@ impl Assignment {
     ///
     /// let assign = Assignment::new(0, "Test 1")
     ///     .with_value(25.0)?
-    ///     .with_due_date(NaiveDate::from_ymd(2022, 1, 1).and_hms(12, 0, 0));
+    ///     .with_due_date(date!(2022-01-01));
     ///
     /// let assign = Assignment::new(0, "Test 1")
     ///     .with_value(25.0)?
     ///     .with_mark(Mark::Letter('A'))?
-    ///     .with_due_date(NaiveDate::from_ymd(2022, 1, 1).and_hms(12, 0, 0));
+    ///     .with_due_date(date!(2022-01-01));
     /// # Ok(()) }
     /// ```
     #[must_use]
@@ -239,13 +239,13 @@ impl Assignment {
     ///
     /// # Examples
     /// ```
+    /// # use time::macros::date;
     /// # use tracker_core::prelude::*;
-    /// # use chrono::NaiveDate;
     /// let mut assign = Assignment::new(10, "Test 1")
-    ///     .with_due_date(NaiveDate::from_ymd(2022, 1, 1).and_hms(12, 0, 0));
+    ///     .with_due_date(date!(2022-01-01));
     /// ```
     #[must_use]
-    pub fn with_due_date(mut self, due_date: NaiveDateTime) -> Self {
+    pub fn with_due_date(mut self, due_date: Date) -> Self {
         self.due_date = Some(due_date);
         self
     }
