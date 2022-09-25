@@ -19,7 +19,7 @@ impl Mark {
 
     /// Create a new letter grade.
     #[must_use]
-    pub fn letter(grade: Grade) -> Self {
+    pub fn grade(grade: Grade) -> Self {
         Mark::Grade(grade)
     }
 

@@ -42,7 +42,10 @@ impl Percent {
     /// Get the average of many percentages.
     #[must_use]
     pub fn average_many(percents: impl IntoIterator<Item = Self>) -> Self {
-        percents.into_iter().fold(Percent::zero(), Percent::average)
+        percents
+            .into_iter()
+            .reduce(Self::average)
+            .unwrap_or_else(Self::zero)
     }
 }
 
