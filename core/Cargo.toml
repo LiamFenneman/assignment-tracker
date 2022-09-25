@@ -1,0 +1,11 @@
+[package]
+name = "tracker_core"
+version = "0.9.0"
+edition = "2021"
+
+[dependencies]
+log = "^0.4"        # logging
+thiserror = "^1.0"  # custom error types
+
+[dev-dependencies]
+rstest = "^0.15"    # parameterized tests
