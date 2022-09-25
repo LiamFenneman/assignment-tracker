@@ -1,7 +1,7 @@
 use std::fmt;
 
 /// A percentage. Integer value within the range 0 to 100.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Percent {
     value: u8,
 }

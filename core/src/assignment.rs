@@ -1,6 +1,6 @@
 use time::Date;
 
-use crate::percent::Percent;
+use crate::mark::Percent;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment {
