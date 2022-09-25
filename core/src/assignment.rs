@@ -70,4 +70,16 @@ impl Assignment {
     pub fn due_date(&self) -> Option<Date> {
         self.due_date
     }
+
+    /// Get the assignment's weight.
+    #[must_use]
+    pub fn weight(&self) -> Option<Percent> {
+        self.weight
+    }
+
+    /// Get the assignment's mark.
+    #[must_use]
+    pub fn mark(&self) -> Option<Percent> {
+        self.mark
+    }
 }
