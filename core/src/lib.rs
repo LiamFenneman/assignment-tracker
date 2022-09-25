@@ -1,14 +1,10 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+//! # Tracker Core
+//! Core library for tracking courses and assignments.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#![warn(clippy::pedantic)]
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+#[macro_use]
+extern crate log;
+
+pub mod assignment;
+pub mod course;
