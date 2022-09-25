@@ -1,4 +1,4 @@
-use crate::assignment::Assignment;
+use crate::{assignment::Assignment, mark::Percent};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Course {
@@ -42,6 +42,26 @@ impl Course {
     #[must_use]
     pub fn assignments(&self) -> &[Assignment] {
         &self.assignments
+    }
+
+    /// Get the course's average mark.
+    #[must_use]
+    pub fn average_mark(&self) -> Option<Percent> {
+        // if there are no assignments, do not return a mark
+        if self.assignments().is_empty() {
+            return None;
+        }
+
+        // find the iterator for all the assignments with a mark;
+        // convert the marks all into percentages
+        let iter = self
+            .assignments()
+            .iter()
+            .filter_map(Assignment::mark)
+            .map(Percent::from);
+
+        // find the average of all the marks
+        Some(Percent::average_many(iter))
     }
 
     /// Add an assignment to the course.

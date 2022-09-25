@@ -1,7 +1,7 @@
 use crate::mark::{out_of, percent, Grade, OutOf, Percent};
 
 /// A mark for an assignment.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mark {
     Percent(Percent),
     Grade(Grade),
@@ -29,5 +29,15 @@ impl Mark {
     /// - If `mark` is greater than `out_of`.
     pub fn out_of(mark: u16, out_of: u16) -> Result<Self, out_of::Error> {
         Ok(Mark::OutOf(OutOf::new(mark, out_of)?))
+    }
+}
+
+impl From<Mark> for Percent {
+    fn from(mark: Mark) -> Self {
+        match mark {
+            Mark::Percent(pct) => pct,
+            Mark::Grade(grade) => grade.into(),
+            Mark::OutOf(out_of) => out_of.into(),
+        }
     }
 }

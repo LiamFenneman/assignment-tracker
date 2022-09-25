@@ -1,6 +1,6 @@
 use time::Date;
 
-use crate::mark::Percent;
+use crate::mark::{Mark, Percent};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment {
@@ -9,7 +9,7 @@ pub struct Assignment {
     name: String,
     due_date: Option<Date>,
     weight: Option<Percent>,
-    mark: Option<Percent>,
+    mark: Option<Mark>,
 }
 
 impl Assignment {
@@ -42,7 +42,7 @@ impl Assignment {
 
     /// Create a new assignment with a mark.
     #[must_use]
-    pub fn with_mark(mut self, mark: Percent) -> Self {
+    pub fn with_mark(mut self, mark: Mark) -> Self {
         self.mark = Some(mark);
         self
     }
@@ -79,7 +79,7 @@ impl Assignment {
 
     /// Get the assignment's mark.
     #[must_use]
-    pub fn mark(&self) -> Option<Percent> {
+    pub fn mark(&self) -> Option<Mark> {
         self.mark
     }
 }

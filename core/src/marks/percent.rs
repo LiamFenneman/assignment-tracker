@@ -26,6 +26,24 @@ impl Percent {
     pub fn value(&self) -> u8 {
         self.value
     }
+
+    #[must_use]
+    pub const fn zero() -> Self {
+        Percent { value: 0 }
+    }
+
+    /// Get the average of two percentages.
+    #[must_use]
+    pub fn average(self, other: Self) -> Self {
+        let value = (self.value + other.value) / 2;
+        Percent { value }
+    }
+
+    /// Get the average of many percentages.
+    #[must_use]
+    pub fn average_many(percents: impl IntoIterator<Item = Self>) -> Self {
+        percents.into_iter().fold(Percent::zero(), Percent::average)
+    }
 }
 
 impl From<OutOf> for Percent {
