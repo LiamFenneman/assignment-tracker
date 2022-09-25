@@ -2,6 +2,7 @@
 //! Core library for tracking courses and assignments.
 
 #![warn(clippy::pedantic)]
+#![deny(clippy::unwrap_used)]
 
 pub mod assignment;
 pub mod course;

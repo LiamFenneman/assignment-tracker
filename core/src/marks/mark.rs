@@ -1,4 +1,4 @@
-use crate::mark::{grade, out_of, percent, Grade, OutOf, Percent};
+use crate::mark::{out_of, percent, Grade, OutOf, Percent};
 
 /// A mark for an assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,8 +19,8 @@ impl Mark {
 
     /// Create a new letter grade.
     #[must_use]
-    pub fn letter(grade: char, modifier: Option<grade::Modifier>) -> Self {
-        Mark::Grade(Grade::new(grade, modifier))
+    pub fn letter(grade: Grade) -> Self {
+        Mark::Grade(grade)
     }
 
     /// Create a new out of mark.

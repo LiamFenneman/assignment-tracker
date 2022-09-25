@@ -49,7 +49,7 @@ mod tests {
     #[case(u16::MIN, u16::MAX)]
     #[case(u16::MAX, u16::MAX)]
     fn out_of_new(#[case] mark: u16, #[case] out_of: u16) {
-        let r = OutOf::new(mark, out_of).unwrap();
+        let r = OutOf::new(mark, out_of).expect("invalid test cases");
         assert_eq!(r.mark(), mark);
         assert_eq!(r.out_of(), out_of);
     }

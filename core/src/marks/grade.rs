@@ -1,39 +1,86 @@
 use std::fmt;
 
+use crate::mark::Percent;
+
 /// A letter grade.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Grade {
-    grade: char,
-    modifier: Option<Modifier>,
+pub enum Grade {
+    A(Option<Modifier>),
+    B(Option<Modifier>),
+    C(Option<Modifier>),
+    D,
+    E,
+    F,
 }
 
-impl Grade {
-    /// Create a new grade.
-    #[must_use]
-    pub fn new(grade: char, modifier: Option<Modifier>) -> Self {
-        Grade { grade, modifier }
+/// Convert from a percent to a letter grade.
+/// TODO: use types instead of the `u8` values.
+/// TODO: allow for custom grade ranges.
+const fn pct_to_grade(pct: u8) -> Grade {
+    match pct {
+        90..=100 => Grade::A(Some(Modifier::Plus)),
+        85..=89 => Grade::A(None),
+        80..=84 => Grade::A(Some(Modifier::Minus)),
+        75..=79 => Grade::B(Some(Modifier::Plus)),
+        70..=74 => Grade::B(None),
+        65..=69 => Grade::B(Some(Modifier::Minus)),
+        60..=64 => Grade::C(Some(Modifier::Plus)),
+        55..=59 => Grade::C(None),
+        50..=54 => Grade::C(Some(Modifier::Minus)),
+        40..=49 => Grade::D,
+        1..=39 => Grade::E,
+        0 => Grade::F,
+        _ => unreachable!(),
     }
+}
 
-    /// Get the grade's letter.
-    #[must_use]
-    pub fn grade(&self) -> char {
-        self.grade
+/// Convert from a letter grade to a percentage.
+/// TODO: use types instead of the `u8` values.
+const fn grade_to_pct(grade: Grade) -> u8 {
+    match grade {
+        Grade::A(Some(Modifier::Plus)) => 90,
+        Grade::A(None) => 85,
+        Grade::A(Some(Modifier::Minus)) => 80,
+        Grade::B(Some(Modifier::Plus)) => 75,
+        Grade::B(None) => 70,
+        Grade::B(Some(Modifier::Minus)) => 65,
+        Grade::C(Some(Modifier::Plus)) => 60,
+        Grade::C(None) => 55,
+        Grade::C(Some(Modifier::Minus)) => 50,
+        Grade::D => 40,
+        Grade::E => 20,
+        Grade::F => 0,
     }
+}
 
-    /// Get the grade's modifier.
-    #[must_use]
-    pub fn modifier(&self) -> Option<Modifier> {
-        self.modifier
+impl From<Percent> for Grade {
+    fn from(percent: Percent) -> Self {
+        pct_to_grade(percent.value())
+    }
+}
+
+impl From<Grade> for Percent {
+    fn from(grade: Grade) -> Self {
+        Percent::new(grade_to_pct(grade)).expect("invalid conversion")
     }
 }
 
 impl fmt::Display for Grade {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.grade)?;
-        if let Some(modifier) = self.modifier {
-            write!(f, "{}", modifier)?;
+        match self {
+            Grade::A(None) => write!(f, "A"),
+            Grade::B(None) => write!(f, "B"),
+            Grade::C(None) => write!(f, "C"),
+            Grade::D => write!(f, "D"),
+            Grade::E => write!(f, "E"),
+            Grade::F => write!(f, "F"),
+            Grade::A(Some(Modifier::Plus)) => write!(f, "A+"),
+            Grade::B(Some(Modifier::Plus)) => write!(f, "B+"),
+            Grade::C(Some(Modifier::Plus)) => write!(f, "C+"),
+            Grade::A(Some(Modifier::Minus)) => write!(f, "A-"),
+            Grade::B(Some(Modifier::Minus)) => write!(f, "B-"),
+            Grade::C(Some(Modifier::Minus)) => write!(f, "C-"),
         }
-        Ok(())
     }
 }
 
@@ -50,34 +97,5 @@ impl fmt::Display for Modifier {
             Modifier::Plus => write!(f, "+"),
             Modifier::Minus => write!(f, "-"),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use rstest::rstest;
-
-    #[rstest]
-    #[case('A', None)]
-    #[case('B', Some(Modifier::Plus))]
-    #[case('C', Some(Modifier::Minus))]
-    fn grade_new(#[case] letter: char, #[case] modifier: Option<Modifier>) {
-        let grade = Grade::new(letter, modifier);
-        assert_eq!(grade.grade(), letter);
-        assert_eq!(grade.modifier(), modifier);
-    }
-
-    #[rstest]
-    #[case('A', None, "A")]
-    #[case('A', Some(Modifier::Plus), "A+")]
-    #[case('A', Some(Modifier::Minus), "A-")]
-    fn grade_display(
-        #[case] grade: char,
-        #[case] modifier: Option<Modifier>,
-        #[case] expected: &str,
-    ) {
-        let grade = Grade::new(grade, modifier);
-        assert_eq!(grade.to_string(), expected);
     }
 }

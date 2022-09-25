@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::mark::OutOf;
+
 /// A percentage. Integer value within the range 0 to 100.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Percent {
@@ -23,6 +25,17 @@ impl Percent {
     #[must_use]
     pub fn value(&self) -> u8 {
         self.value
+    }
+}
+
+impl From<OutOf> for Percent {
+    fn from(out_of: OutOf) -> Self {
+        let mark = out_of.mark();
+        let out_of = out_of.out_of();
+        let pct = (f32::from(mark) / f32::from(out_of)) * 100.0;
+        assert!((0.0..=100.0).contains(&pct), "pct = {}", pct);
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        Percent::new(pct as u8).expect("pct already checked")
     }
 }
 
@@ -50,7 +63,7 @@ mod tests {
     #[case(99)]
     #[case(100)]
     fn percent_new(#[case] pct: u8) {
-        let percent = Percent::new(pct).unwrap();
+        let percent = Percent::new(pct).expect("invalid test cases");
         assert_eq!(percent.value(), pct);
     }
 
@@ -64,13 +77,14 @@ mod tests {
     }
 
     #[rstest]
-    #[case(u8::MIN)]
-    #[case(1)]
-    #[case(50)]
-    #[case(99)]
-    #[case(100)]
-    fn percent_display(#[case] pct: u8) {
-        let percent = Percent::new(pct).unwrap();
-        assert_eq!(percent.to_string(), format!("{}%", pct));
+    #[case(0, 100, 0)]
+    #[case(1, 100, 1)]
+    #[case(50, 200, 25)]
+    #[case(100, 200, 50)]
+    #[case(100, 300, 33)]
+    fn percent_from_out_of(#[case] mark: u16, #[case] out_of: u16, #[case] pct: u8) {
+        let out_of = OutOf::new(mark, out_of).expect("invalid test cases");
+        let percent = Percent::from(out_of);
+        assert_eq!(percent.value(), pct);
     }
 }
