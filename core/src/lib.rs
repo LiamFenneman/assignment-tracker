@@ -8,3 +8,8 @@ extern crate log;
 
 pub mod assignment;
 pub mod course;
+
+mod util {
+    pub mod percent;
+}
+pub use util::percent;

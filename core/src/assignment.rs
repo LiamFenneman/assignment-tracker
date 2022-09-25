@@ -1,13 +1,15 @@
 use time::Date;
 
+use crate::percent::Percent;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment {
     id: u64,
     course_id: u64,
     name: String,
     due_date: Option<Date>,
-    weight: Option<u8>,
-    mark: Option<u8>,
+    weight: Option<Percent>,
+    mark: Option<Percent>,
 }
 
 impl Assignment {
@@ -33,14 +35,14 @@ impl Assignment {
 
     /// Create a new assignment with a weight.
     #[must_use]
-    pub fn with_weight(mut self, weight: u8) -> Self {
+    pub fn with_weight(mut self, weight: Percent) -> Self {
         self.weight = Some(weight);
         self
     }
 
     /// Create a new assignment with a mark.
     #[must_use]
-    pub fn with_mark(mut self, mark: u8) -> Self {
+    pub fn with_mark(mut self, mark: Percent) -> Self {
         self.mark = Some(mark);
         self
     }
