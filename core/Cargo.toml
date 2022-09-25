@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 log = "^0.4"        # logging
 thiserror = "^1.0"  # custom error types
+time = "^0.3"       # dates and times
 
 [dev-dependencies]
 rstest = "^0.15"    # parameterized tests
