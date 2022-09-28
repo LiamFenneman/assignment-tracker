@@ -1,8 +1,8 @@
 [workspace]
-
 members = [
-    "tracker/core",
-    "tracker/web/backend",
-    "tracker/web/frontend",
-    "tracker/test"
+    "core",
+    # "tracker/core",
+    # "tracker/web/backend",
+    # "tracker/web/frontend",
+    # "tracker/test"
 ]
