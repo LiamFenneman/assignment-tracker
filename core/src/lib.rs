@@ -21,3 +21,9 @@ mod marks {
 pub mod mark {
     pub use crate::marks::*;
 }
+
+pub mod prelude {
+    pub use crate::assignment::Assignment;
+    pub use crate::course::Course;
+    pub use crate::mark::Mark;
+}
