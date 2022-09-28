@@ -1,6 +1,0 @@
-[package]
-name = "tracker-web-frontend"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
