@@ -1,29 +1,14 @@
-//! # Tracker Core
-//! Core library for tracking courses and assignments.
-
-#![warn(clippy::pedantic)]
-#![deny(clippy::unwrap_used)]
-
 pub mod assignment;
 pub mod course;
 
-// Hide the private organization of the mark module from the docs.
-mod marks {
-    pub mod grade;
-    mod mark;
-    pub mod out_of;
-    pub mod percent;
-    pub use grade::Grade;
-    pub use mark::Mark;
-    pub use out_of::OutOf;
-    pub use percent::Percent;
-}
-pub mod mark {
-    pub use crate::marks::*;
-}
+type Result<T> = std::result::Result<T, TrackerError>;
 
-pub mod prelude {
-    pub use crate::assignment::Assignment;
-    pub use crate::course::Course;
-    pub use crate::mark::Mark;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum TrackerError {
+    #[error("`{0}` is not within a percentage range (0..=100)")]
+    OutOfPercentageRange(u32),
+    #[error("unknown tracker error")]
+    Unknown,
 }

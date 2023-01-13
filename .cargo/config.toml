@@ -1,6 +1,2 @@
-[alias]
-# run lib tests for core library
-tc = ["test", "--lib", "-p", "tracker_core"]
-
 [doc]
 browser = "opera"

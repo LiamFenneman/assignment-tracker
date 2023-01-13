@@ -1,85 +1,74 @@
-use time::Date;
+use crate::{Result, TrackerError};
 
-use crate::mark::{Mark, Percent};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Representation of an [Assignment].
+///
+/// Restrictions:
+/// - `mark` must be within range: `0..=100`.
+/// - `weight` must be within range: `0..=100`.
+#[derive(Debug, Clone)]
 pub struct Assignment {
-    id: u64,
-    course_id: u64,
     name: String,
-    due_date: Option<Date>,
-    weight: Option<Percent>,
-    mark: Option<Mark>,
+    mark: Option<u32>,
+    weight: Option<u32>,
 }
 
 impl Assignment {
-    /// Create a new assignment.
-    #[must_use]
-    pub fn new(id: u64, course_id: u64, name: String) -> Self {
-        Assignment {
-            id,
-            course_id,
-            name,
-            due_date: None,
-            weight: None,
-            mark: None,
+    /// Create a new [Assignment] with a name.
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            ..Default::default()
         }
     }
 
-    /// Create a new assignment with a due date.
-    #[must_use]
-    pub fn with_due_date(mut self, due_date: Date) -> Self {
-        self.due_date = Some(due_date);
-        self
-    }
+    /// Set the mark for the [Assignment].
+    ///
+    /// Errors:
+    /// - `mark` is not within range: `0..=100`
+    pub fn set_mark(&mut self, mark: u32) -> Result<()> {
+        if (0..=100).contains(&mark) {
+            return Err(TrackerError::OutOfPercentageRange(mark));
+        }
 
-    /// Create a new assignment with a weight.
-    #[must_use]
-    pub fn with_weight(mut self, weight: Percent) -> Self {
-        self.weight = Some(weight);
-        self
-    }
-
-    /// Create a new assignment with a mark.
-    #[must_use]
-    pub fn with_mark(mut self, mark: Mark) -> Self {
         self.mark = Some(mark);
-        self
+        Ok(())
     }
 
-    /// Get the assignment's ID.
-    #[must_use]
-    pub fn id(&self) -> u64 {
-        self.id
+    /// Set the weighting for the [Assignment].
+    ///
+    /// Errors:
+    /// - `weight` is not within range: `0..=100`
+    pub fn set_weight(&mut self, weight: u32) -> Result<()> {
+        if (0..=100).contains(&weight) {
+            return Err(TrackerError::OutOfPercentageRange(weight));
+        }
+
+        self.weight = Some(weight);
+        Ok(())
     }
 
-    /// Get the assignment's course ID.
-    #[must_use]
-    pub fn course_id(&self) -> u64 {
-        self.course_id
-    }
-
-    /// Get the assignment's name.
-    #[must_use]
+    /// Get the name of the [Assignment].
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// Get the assignment's due date.
-    #[must_use]
-    pub fn due_date(&self) -> Option<Date> {
-        self.due_date
+    /// Get the mark from the [Assignment].
+    pub fn mark(&self) -> Option<u32> {
+        self.mark
     }
 
-    /// Get the assignment's weight.
-    #[must_use]
-    pub fn weight(&self) -> Option<Percent> {
+    /// Get the weight from the [Assignment].
+    pub fn weight(&self) -> Option<u32> {
         self.weight
     }
+}
 
-    /// Get the assignment's mark.
-    #[must_use]
-    pub fn mark(&self) -> Option<Mark> {
-        self.mark
+impl Default for Assignment {
+    fn default() -> Self {
+        Self {
+            name: String::from("Unknown assignment"),
+            mark: None,
+            weight: None,
+        }
     }
 }
