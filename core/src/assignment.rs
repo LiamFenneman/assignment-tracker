@@ -1,15 +1,9 @@
-use crate::{Result, TrackerError};
-
 /// Representation of an [Assignment].
-///
-/// Restrictions:
-/// - `mark` must be within range: `0..=100`.
-/// - `weight` must be within range: `0..=100`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Assignment {
-    name: String,
-    mark: Option<u32>,
-    weight: Option<u32>,
+    pub name: String,
+    pub mark: Option<u32>,
+    pub weight: Option<u32>,
 }
 
 impl Assignment {
@@ -21,45 +15,16 @@ impl Assignment {
         }
     }
 
-    /// Set the mark for the [Assignment].
-    ///
-    /// Errors:
-    /// - `mark` is not within range: `0..=100`
-    pub fn set_mark(&mut self, mark: u32) -> Result<()> {
-        if (0..=100).contains(&mark) {
-            return Err(TrackerError::OutOfPercentageRange(mark));
-        }
-
+    /// Builder: add a mark to the assignment.
+    pub fn mark(mut self, mark: u32) -> Self {
         self.mark = Some(mark);
-        Ok(())
+        self
     }
 
-    /// Set the weighting for the [Assignment].
-    ///
-    /// Errors:
-    /// - `weight` is not within range: `0..=100`
-    pub fn set_weight(&mut self, weight: u32) -> Result<()> {
-        if (0..=100).contains(&weight) {
-            return Err(TrackerError::OutOfPercentageRange(weight));
-        }
-
+    /// Builder: add a weight to the assignment.
+    pub fn weight(mut self, weight: u32) -> Self {
         self.weight = Some(weight);
-        Ok(())
-    }
-
-    /// Get the name of the [Assignment].
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Get the mark from the [Assignment].
-    pub fn mark(&self) -> Option<u32> {
-        self.mark
-    }
-
-    /// Get the weight from the [Assignment].
-    pub fn weight(&self) -> Option<u32> {
-        self.weight
+        self
     }
 }
 
