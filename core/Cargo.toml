@@ -1,11 +1,7 @@
 [package]
 name = "tracker_core"
-version = "0.9.0"
+version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-thiserror = "^1.0"                                  # custom error types
-time = { version = "^0.3", features = ["macros"] }  # dates and times
-
-[dev-dependencies]
-rstest = "^0.15"                                    # parameterized tests
+thiserror = "1.0.38"
