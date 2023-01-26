@@ -1,29 +1,44 @@
-use leptos::*;
+#[cfg(feature = "ssr")]
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    use actix_files::Files;
+    use actix_web::*;
+    use leptos::*;
+    use leptos_actix::{generate_route_list, LeptosRoutes};
+    use tracker_app::app::*;
 
-#[component]
-pub fn SimpleCounter(cx: Scope, initial_value: i32) -> impl IntoView {
-    // create a reactive signal with the initial value
-    let (value, set_value) = create_signal(cx, initial_value);
-
-    // create event handlers for our buttons
-    // note that `value` and `set_value` are `Copy`, so it's super easy to move them into closures
-    let clear = move |_| set_value(0);
-    let decrement = move |_| set_value.update(|value| *value -= 1);
-    let increment = move |_| set_value.update(|value| *value += 1);
-
-    // create user interfaces with the declarative `view!` macro
-    view! {
-        cx,
-        <div>
-            <button on:click=clear>"Clear"</button>
-            <button on:click=decrement>"-1"</button>
-            <span>"Value: " {value} "!"</span>
-            <button on:click=increment>"+1"</button>
-        </div>
+    #[get("/style.css")]
+    async fn css() -> impl Responder {
+        actix_files::NamedFile::open_async("./style/output.css").await
     }
+
+    let conf = get_configuration(None).await.unwrap();
+    let addr = conf.leptos_options.site_address;
+    // Generate the list of routes in your Leptos App
+    let routes = generate_route_list(|cx| view! { cx, <App/> });
+
+    HttpServer::new(move || {
+        let leptos_options = &conf.leptos_options;
+        let site_root = &leptos_options.site_root;
+
+        App::new()
+            .route("/api/{tail:.*}", leptos_actix::handle_server_fns())
+            .leptos_routes(
+                leptos_options.to_owned(),
+                routes.to_owned(),
+                |cx| view! { cx, <App/> },
+            )
+            .service(Files::new("/", site_root))
+        //.wrap(middleware::Compress::default())
+    })
+    .bind(&addr)?
+    .run()
+    .await
 }
 
-// Easy to use with Trunk (trunkrs.dev) or with a simple wasm-bindgen setup
+#[cfg(not(feature = "ssr"))]
 pub fn main() {
-    mount_to_body(|cx| view! { cx,  <SimpleCounter initial_value=3 /> })
+    // no client-side main function
+    // unless we want this to work with e.g., Trunk for pure client-side testing
+    // see lib.rs for hydration function instead
 }
