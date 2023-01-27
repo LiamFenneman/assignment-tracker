@@ -1,8 +1,8 @@
 # Leptos App with Tailwind
 
 To run:
-1. `npx tailwindcss -i ./input.css -o ./style/output.css --watch`
-2. `cargo leptos watch`
+- `make tailwind` to watch for updates to the input.css file for tailwind.
+- `make leptos` to watch for updates to `src/` etc.
 
 ---
 
