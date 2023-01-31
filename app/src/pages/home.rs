@@ -5,6 +5,6 @@ use crate::components::*;
 pub fn HomePage(cx: Scope) -> impl IntoView {
     view! {
         cx,
-        <p>"HomePage"</p>
+        <p>"Assignment Tracker"</p>
     }
 }

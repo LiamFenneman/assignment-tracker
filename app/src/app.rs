@@ -26,6 +26,9 @@ pub fn App(cx: Scope) -> impl IntoView {
             <main>
                 <Routes>
                     <Route path="" view=|cx| view! { cx, <HomePage/> }/>
+                    <Route path="/assignments" view=|cx| view! { cx, <p>"Assignments"</p> }/>
+                    <Route path="/courses" view=|cx| view! { cx, <p>"Courses"</p> }/>
+                    <Route path="/profile" view=|cx| view! { cx, <p>"Profile"</p> }/>
                 </Routes>
             </main>
         </Router>
