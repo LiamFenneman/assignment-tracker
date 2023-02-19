@@ -553,19 +553,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "leptos-csr"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "console_log",
- "leptos",
- "leptos_meta",
- "leptos_router",
- "log",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "leptos_config"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1230,6 +1217,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24eb03ba0eab1fd845050058ce5e616558e8f8d8fca633e6b163fe25c797213a"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "tracker_app"
+version = "0.0.1"
+dependencies = [
+ "console_error_panic_hook",
+ "console_log",
+ "leptos",
+ "leptos_meta",
+ "leptos_router",
+ "log",
+ "wasm-bindgen",
 ]
 
 [[package]]
