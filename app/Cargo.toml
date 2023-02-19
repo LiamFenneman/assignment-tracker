@@ -7,6 +7,7 @@ edition.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+tracker_core = { path = "../core" }
 console_error_panic_hook = "0.1.7"
 console_log = "0.2.0"
 leptos = "0.1.3"
@@ -14,6 +15,7 @@ leptos_meta = { version = "0.1.3", features = ["csr"] }
 leptos_router = { version = "0.1.3", features = ["csr"] }
 log = "0.4.17"
 wasm-bindgen = "0.2.84"
+anyhow = "1.0.69"
 
 [package.metadata.leptos]
 site-root = "."
