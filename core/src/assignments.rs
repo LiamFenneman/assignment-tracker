@@ -7,7 +7,7 @@ const MAX_SUM_WEIGHT: u32 = 100;
 /// Collection of [Assignment]s.
 ///
 /// Backed by a [VecDeque].
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Assignments {
     inner: VecDeque<Assignment>,
 }

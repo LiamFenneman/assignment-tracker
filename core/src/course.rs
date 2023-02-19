@@ -1,10 +1,10 @@
-use crate::Assignment;
+use crate::Assignments;
 
 /// Representation of a [Course].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Course {
     pub name: String,
-    pub assignments: Vec<Assignment>,
+    pub assignments: Assignments,
 }
 
 impl Course {
@@ -21,7 +21,7 @@ impl Default for Course {
     fn default() -> Self {
         Self {
             name: String::from("Unknown course"),
-            assignments: Vec::new(),
+            assignments: Default::default(),
         }
     }
 }
