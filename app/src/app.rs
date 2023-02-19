@@ -8,6 +8,7 @@ pub fn App(cx: Scope) -> impl IntoView {
 
     view! {
         cx,
+        <Title text="Assignment Tracker" />
         <Router>
             <Routes>
                 <Route path="" view=move |cx| view! { cx, <HomePage /> } />
