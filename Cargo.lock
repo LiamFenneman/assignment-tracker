@@ -1229,6 +1229,7 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "log",
+ "tracker_core",
  "wasm-bindgen",
 ]
 

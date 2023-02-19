@@ -7,6 +7,7 @@ edition.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+tracker_core = { path = "../core" }
 console_error_panic_hook = "0.1.7"
 console_log = "0.2.0"
 leptos = "0.1.3"

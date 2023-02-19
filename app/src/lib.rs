@@ -4,6 +4,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 mod app;
 use app::*;
 
+pub mod components;
+
 #[wasm_bindgen(start)]
 pub fn main() {
     let _ = console_log::init_with_level(log::Level::Debug);
