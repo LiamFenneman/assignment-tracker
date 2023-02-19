@@ -1,25 +1,17 @@
-pub mod app;
-pub mod components;
-pub mod pages;
-use cfg_if::cfg_if;
+use leptos::*;
+use wasm_bindgen::prelude::wasm_bindgen;
 
-cfg_if! {
-if #[cfg(feature = "hydrate")] {
+mod app;
+use app::*;
 
-  use wasm_bindgen::prelude::wasm_bindgen;
+#[wasm_bindgen(start)]
+pub fn main() {
+    let _ = console_log::init_with_level(log::Level::Debug);
+    console_error_panic_hook::set_once();
 
-    #[wasm_bindgen]
-    pub fn hydrate() {
-      use app::*;
-      use leptos::*;
-
-      // initializes logging using the `log` crate
-      _ = console_log::init_with_level(log::Level::Debug);
-      console_error_panic_hook::set_once();
-
-      leptos::mount_to_body(move |cx| {
-          view! { cx, <App/> }
-      });
-    }
-}
+    mount_to_body(|cx| {
+        view! {
+            cx, <App />
+        }
+    });
 }
