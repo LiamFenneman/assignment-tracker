@@ -24,6 +24,11 @@ impl Assignment {
         }
     }
 
+    /// Get the name of the [Assignment].
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     /// Get the mark as a percentage.
     pub fn mark(&self) -> Option<u32> {
         self.mark
