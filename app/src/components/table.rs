@@ -31,7 +31,7 @@ pub fn CourseTable(cx: Scope, course: Course) -> impl IntoView {
                             <tbody>
                             <For
                                 each=assigns
-                                key=|c| c.name.clone()
+                                key=|a: &Assignment| a.name().to_owned()
                                 view=move |a: Assignment| view! { cx, <TableElement assignment=a /> }
                             />
                             </tbody>
@@ -49,18 +49,16 @@ fn TableElement(cx: Scope, assignment: Assignment) -> impl IntoView {
         cx,
         <tr class="odd:bg-white even:bg-slate-50 border-b transition duration-300 ease-in-out hover:bg-gray-100">
             <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
-                {assignment.name}
+                {assignment.name().to_owned()}
             </td>
             <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
-                {format!("{:?}", assignment.mark)}
+                {format!("{:?}", assignment.mark())}
             </td>
             <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
-                {format!("{:?}", assignment.weight)}
+                {format!("{:?}", assignment.weight())}
             </td>
             <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap">
-                // TODO: calculate percentage (this *should* be a function within
-                // tracker_core::Assignment)
-                "0%"
+                {format!("{:?}", assignment.percentage())}
             </td>
         </tr>
     }

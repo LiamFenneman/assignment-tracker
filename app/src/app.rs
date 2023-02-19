@@ -23,13 +23,7 @@ pub fn App(cx: Scope) -> impl IntoView {
 #[component]
 pub fn HomePage(cx: Scope) -> impl IntoView {
     // TODO: get this from database
-    let mut course = Course::new("Example");
-    course.assignments = vec![
-        Assignment::new("Assignment 1").mark(100).weight(25),
-        Assignment::new("Assignment 2").mark(75).weight(25),
-        Assignment::new("Assignment 3").weight(25),
-        Assignment::new("Exam").weight(25),
-    ];
+    let course = create_tmp_course().unwrap();
 
     view! {
         cx,
@@ -38,4 +32,22 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
             <CourseTable course />
         </main>
     }
+}
+
+fn create_tmp_course() -> anyhow::Result<Course> {
+    let mut course = Course::new("Example");
+    course.assignments.push_back(Assignment::new("Assignment 1"))?;
+    course.assignments.push_back(Assignment::new("Assignment 2"))?;
+    course.assignments.push_back(Assignment::new("Assignment 3"))?;
+    course.assignments.push_back(Assignment::new("Exam"))?;
+
+    course.assignments.get_mut(0).unwrap().set_mark(100)?;
+    course.assignments.get_mut(0).unwrap().set_weight(25)?;
+    course.assignments.get_mut(1).unwrap().set_mark(75)?;
+    course.assignments.get_mut(1).unwrap().set_weight(25)?;
+    course.assignments.get_mut(2).unwrap().set_mark(50)?;
+    course.assignments.get_mut(2).unwrap().set_weight(25)?;
+    course.assignments.get_mut(3).unwrap().set_weight(25)?;
+
+    return Ok(course);
 }
