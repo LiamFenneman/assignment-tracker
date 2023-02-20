@@ -15,6 +15,14 @@ impl Course {
             ..Default::default()
         }
     }
+
+    pub fn with_assignments(name: &str, assignments: Assignments) -> Self {
+        Self {
+            name: name.to_owned(),
+            assignments,
+            ..Default::default()
+        }
+    }
 }
 
 impl Default for Course {

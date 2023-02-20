@@ -87,6 +87,13 @@ impl Assignments {
         self.inner.remove(index)
     }
 
+    /// Moves all the [Assignment]s of `other` into `self`, leaving `other` empty.
+    ///
+    /// See [VecDeque::append].
+    pub fn append(&mut self, other: &mut Self) {
+        self.inner.append(&mut other.inner);
+    }
+
     /// Check if the assignment is allowed to be added to the collection.
     fn can_add_assignment(&self, assignment: &Assignment) -> Result<(), AssignmentsError> {
         if self.inner.iter().any(|a| a.name() == assignment.name()) {
@@ -109,5 +116,27 @@ impl IntoIterator for Assignments {
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter()
+    }
+}
+
+impl<'a> Extend<&'a Assignment> for Assignments {
+    fn extend<T: IntoIterator<Item = &'a Assignment>>(&mut self, iter: T) {
+        self.inner.extend(iter.into_iter().cloned())
+    }
+}
+
+impl<const N: usize> From<[Assignment; N]> for Assignments {
+    fn from(assignments: [Assignment; N]) -> Self {
+        Self {
+            inner: VecDeque::from(assignments),
+        }
+    }
+}
+
+impl From<Vec<Assignment>> for Assignments {
+    fn from(assignments: Vec<Assignment>) -> Self {
+        Self {
+            inner: VecDeque::from(assignments),
+        }
     }
 }
