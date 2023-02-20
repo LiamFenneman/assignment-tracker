@@ -3,7 +3,10 @@ use tracker_core::*;
 
 #[component]
 pub fn CourseTable(cx: Scope, course: Course) -> impl IntoView {
-    let (assigns, _) = create_signal(cx, course.assignments);
+    let (assigns, set_assigns) = create_signal(cx, course.assignments);
+    let (is_edit_mode, set_edit_mode) = create_signal(cx, false);
+
+    let toggle_edit_mode = move |_| set_edit_mode.update(|value| *value = !*value);
 
     view! {
         cx,
@@ -12,26 +15,34 @@ pub fn CourseTable(cx: Scope, course: Course) -> impl IntoView {
                 <div class="py-2 inline-block min-w-full sm:px-6 lg:px-8">
                     <div class="overflow-hidden">
                         <table class="min-w-full border">
-                            <thead class="border-b">
+                            <thead class="border-b rounded-sm">
                                 <tr class="bg-white">
                                     <th class="text-lg font-bold text-gray-900 px-6 py-4 text-left">
                                         { course.name.to_owned() }
                                     </th>
                                     <th colspan="3" class="text-sm font-medium text-gray-900 px-6 py-4">
                                         <div class="flex justify-end gap-2">
-                                            <button type="button" class="inline-block px-6 py-2.5 bg-blue-600 text-white
-                                                font-medium text-xs leading-tight uppercase rounded-full
-                                                shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700
-                                                focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800
+                                            <button type="button" class="inline-block px-6 py-2.5 bg-slate-600 text-white
+                                                font-medium font-mono text-xs uppercase rounded-sm
+                                                shadow-md hover:bg-slate-700 hover:shadow-lg focus:bg-slate-700
+                                                focus:shadow-lg focus:outline-none focus:ring-0 active:bg-slate-800
                                                 active:shadow-lg transition duration-150 ease-in-out">
                                                 "Add"
                                             </button>
-                                            <button type="button" class="inline-block px-6 py-2.5 bg-blue-600 text-white
-                                                font-medium text-xs leading-tight uppercase rounded-full
-                                                shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700
-                                                focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800
-                                                active:shadow-lg transition duration-150 ease-in-out">
-                                                "Edit"
+                                            <button
+                                                type="button"
+                                                class=move || {
+                                                    format!("{} inline-block px-6 py-2.5 text-white
+                                                        font-medium font-mono text-xs uppercase rounded-sm
+                                                        shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0
+                                                        active:shadow-lg transition duration-150 ease-in-out",
+                                                        if is_edit_mode() { "bg-green-500 hover:bg-green-600 focus:bg-green-500 active:bg-green-700" }
+                                                        else { "bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-800" }
+                                                    )
+                                                }
+                                                on:click=toggle_edit_mode
+                                            >
+                                                { move || if is_edit_mode() { "Done" } else { "Edit" } }
                                             </button>
                                         </div>
                                     </th>
