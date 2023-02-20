@@ -11,9 +11,32 @@ pub fn CourseTable(cx: Scope, course: Course) -> impl IntoView {
             <div class="overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div class="py-2 inline-block min-w-full sm:px-6 lg:px-8">
                     <div class="overflow-hidden">
-                        <table class="min-w-full">
-                            <thead class="bg-slate-100 border-b">
-                                <tr>
+                        <table class="min-w-full border">
+                            <thead class="border-b">
+                                <tr class="bg-white">
+                                    <th class="text-lg font-bold text-gray-900 px-6 py-4 text-left">
+                                        { course.name.to_owned() }
+                                    </th>
+                                    <th colspan="3" class="text-sm font-medium text-gray-900 px-6 py-4">
+                                        <div class="flex justify-end gap-2">
+                                            <button type="button" class="inline-block px-6 py-2.5 bg-blue-600 text-white
+                                                font-medium text-xs leading-tight uppercase rounded-full
+                                                shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700
+                                                focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800
+                                                active:shadow-lg transition duration-150 ease-in-out">
+                                                "Add"
+                                            </button>
+                                            <button type="button" class="inline-block px-6 py-2.5 bg-blue-600 text-white
+                                                font-medium text-xs leading-tight uppercase rounded-full
+                                                shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700
+                                                focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800
+                                                active:shadow-lg transition duration-150 ease-in-out">
+                                                "Edit"
+                                            </button>
+                                        </div>
+                                    </th>
+                                </tr>
+                                <tr class="bg-slate-100">
                                     <th class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
                                         "Name"
                                     </th>
